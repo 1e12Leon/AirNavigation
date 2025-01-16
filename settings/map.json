@@ -1,0 +1,8 @@
+{
+    "map": "small_city",
+    "start_map_batfile": "E:\\UAV_temp_staging\\demo_code\\python\\Shell\\small_city.bat",
+    "map_list": [
+        "small_city",
+        "beach"
+    ]
+}

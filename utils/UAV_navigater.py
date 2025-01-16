@@ -1,0 +1,597 @@
+import math
+import airsim
+import time
+import numpy as np
+import sys
+from BotSort_tracker.tracker.bot_sort import BoTSORT
+from BotSort_tracker.visualize import plot_tracking
+# from utils.target_tracking_system import TargetTrackingSystem
+from utils.utils import BaseEngine, tlwh2xyxy, vis_botsort_track_mode
+from utils.utils import vis, vis_track_mode, vis_single_object
+from utils.UAV_controller import *
+
+# 计算姿态角对应的旋转矩阵 (姿态角表示无人机在空间中的前进的方向)
+def get_rotation_matrix(pitch, roll, yaw):
+    # pitch角对应的旋转矩阵
+    M_p = [[math.cos(-pitch), 0, -math.sin(-pitch)],
+           [0, 1, 0],
+           [math.sin(-pitch), 0, math.cos(-pitch)]]
+    # roll角对应的旋转矩阵
+    M_r = [[1, 0, 0],
+           [0, math.cos(-roll), math.sin(-roll)],
+           [0, -math.sin(-roll), math.cos(-roll)]]
+    # yaw角对应的旋转矩阵
+    M_y = [[math.cos(-yaw), math.sin(-yaw), 0],
+           [-math.sin(-yaw), math.cos(-yaw), 0],
+           [0, 0, 1]]
+    # 姿态角对应的旋转矩阵
+    M = np.matmul(np.matmul(M_y, M_p), M_r)
+
+    return M
+
+# 计算画面中某点(u, v)相对画面中心的偏航角和俯仰角
+def get_offset_eularian_angle_to_screen_center(screen_width, screen_height, FOV_degree, u, v):
+    half_FOV_rad = (FOV_degree / 2) * (math.pi / 180)  # 先得到水平偏航角的一半
+    distance_to_virtual_visual_plane = (screen_width / 2) / math.tan(half_FOV_rad)
+    u_offset_to_screen_center = u - (screen_width / 2)  # 向右转为正
+    v_offset_to_screen_center = (screen_height / 2) - v  # 向上抬为正
+    yaw = math.atan(u_offset_to_screen_center / distance_to_virtual_visual_plane)
+    pitch = math.atan(v_offset_to_screen_center / distance_to_virtual_visual_plane)
+
+    return pitch, yaw
+
+
+# 目标类
+class Target:
+    def __init__(self, class_name, x, y, z):
+        self.__class_name = class_name
+        self.__x = x
+        self.__y = y
+        self.__z = z
+
+    def get_location(self):
+        return self.__x, self.__y, self.__z
+
+    def get_class_name(self):
+        return self.__class_name
+
+class TargetTracker(Target):
+    def __init__(self, class_name, x, y, z, tracking_id):
+        super().__init__(class_name, x, y, z)  # 修正此处的初始化调用
+        self.__tracking_id = tracking_id
+    
+    def get_tracking_id(self):
+        return self.__tracking_id
+
+    
+# 预测器类
+class Predictor(BaseEngine):
+    def __init__(self, engine_path):
+        super(Predictor, self).__init__(engine_path)
+
+        self.n_classes = 13 
+        self.class_names = [
+            "SUV","Van","BoxTruck","Pickup","Sedan","Trailer","Truck",
+            "ForkLift","Jeep","Motor","Bulldozer","Excavator","RoadRoller"
+        ]
+
+# 导航器类
+class Navigator(UAVController):
+    def __init__(self):
+        super().__init__()
+        self.__targets = []                  # 存放检测到的目标
+        self.__camera_rasing = False         # 是否旋转相机
+        self.__locating = False              # 定位模式(判断是否距离目标较近)
+        self.__botsort_locating = False      # BoT-SORT 定位模式(判断是否距离目标较近)
+
+        self.__botsort_tracker = BoTSORT()  # 实例化 BoT-SORT 跟踪器
+        self.__botsort_tracked_targets = []          # 存放 BoT-SORT 跟踪过的目标
+        self.__botsort_tracked_targets_id = []       # 存放 BoT-SORT 跟踪过目标的ID
+        self.__botsort_target_ids = []       # 待跟踪的目标 ID 列表
+        self.__botsort_current_target_id = None  # 当前正在跟踪的目标 ID
+        # self.__tracking_system = TargetTrackingSystem()
+        self.__last_recovery_attempt = 0        # 
+        self.__recovery_cooldown = 2.0          # 恢复冷却时间
+
+        self.__pred = Predictor(engine_path=r"E:\UAV_temp_staging\demo_code\python\data\models\best_epoch_weights_Brushify.pth")  # 预测器
+        self.__pred.inference(np.array([[[0, 0, 0]]], dtype=np.float64), conf=0.1,
+                              end2end=False)
+        self.__pred.get_fps()
+
+    def set_botsort_target_ids(self, target_ids):
+        """
+        设置需要通过BoT-SORT跟踪的目标ID列表。
+        :param target_ids: 目标ID，可以是单个整数或整数列表。
+        """
+        if isinstance(target_ids, list):
+            self.__botsort_target_ids = target_ids
+        else:
+            self.__botsort_target_ids = [target_ids]
+
+        self.get_next_target_id()
+
+    def get_next_target_id(self):
+        """
+        得到下一个Bot-SORT跟踪的目标ID
+        注意：下一个没有id，则会返回None
+        """
+        # 设置当前目标ID为列表中的第一个目标
+        if self.__botsort_target_ids:
+            self.__botsort_current_target_id = self.__botsort_target_ids.pop(0)
+        else:
+            self.__botsort_current_target_id = None
+
+    # 获取无人机已定位目标
+    def get_targets(self):
+        return self.__targets
+
+    # 目标检测模式
+    def detect_mode(self, origin_frame):
+        # 用已有的引擎检测目标 origin_frame:原始图片 conf:置信度
+        dets = self.__pred.inference_dets(origin_frame, conf=0.5, end2end=False)  # , white_list=[1])
+
+        # 检测到目标 返回：边界框坐标  置信度分数  类别索引
+        if np.array(dets).shape != (0,):
+            final_boxes, final_scores, final_cls_inds = dets[:, :4], dets[:, 4], dets[:, 5]
+            
+            # 调用vis,将以上信息可视化
+            # print(final_cls_inds)
+            self.set_frame(vis(origin_frame, final_boxes, final_scores, final_cls_inds, conf=0.5,
+                               class_names=self.__pred.class_names))
+        else:
+            self.set_frame(origin_frame)
+
+    # 自主导引模式（测试的导航算法）
+    def track_mode(self,origin_frame):
+        # 获取目标检测结果
+        dets = self.__pred.inference_dets(origin_frame, conf=0.5, end2end=False)  # , white_list=[1])
+
+        frame = origin_frame
+        if np.array(dets).shape != (0,):
+            # 排除已定位目标
+            final_dets, frame = self.__exclude_located_targets(dets, frame)
+
+            if np.array(final_dets).shape != (0,):
+                final_dets = final_dets.reshape([-1, 9])
+                boxes, scores, cls_inds, location = final_dets[:, :4], final_dets[:, 4], final_dets[:, 5], final_dets[:, 6:]
+            
+                # 选取下一个要定位的目标
+                # 这里的target_index是表示的是location数组中的下标，即Location[target_index,:]是这个物体的位置
+                target_index = self.__get_the_nearest_object_det_index(location, boxes)
+                
+                self.set_frame(vis_track_mode(frame, boxes, scores, cls_inds,
+                                                self.__pred.class_names, target_index))
+                if target_index != -1 and (time.time() - self.get_last_controlled_time()) > 2:
+                    target_box = boxes[target_index, :]
+                    target_cls_name = self.__pred.class_names[int(cls_inds[target_index])]
+                    self.__locate_target(target_box, target_cls_name)
+                    return
+
+        self.set_frame(frame)
+        self.find_target()
+
+    # 获取距离无人机最近物体的下标
+    def __get_the_nearest_object_det_index(self, locations, boxes):
+        """
+        locations：包含每个物体位置的数组，通常以 NED（北、东、下）坐标表示。
+        每一行是一个物体的位置，包含其在 NED 坐标系下的 X 和 Y 坐标。
+        boxes：每个物体的边界框坐标，通常表示在摄像头画面中的位置，格式为 [x_min, y_min, x_max, y_max]。
+        """
+        x_NED, y_NED, z_NED = self.get_camera_position()
+
+        nearest_object_det_index = -1
+        square_of_nearest_object_det_distance = sys.maxsize
+        for i in range(locations.shape[0]):
+            # 过滤边缘的物体
+            if self.__camera_rasing and self.get_resolution_ratio()[1] - boxes[i, 3] < 20:
+                continue
+
+            square_of_distance = math.pow(locations[i, 0] - x_NED, 2) + math.pow(locations[i, 1] - y_NED, 2)
+            if square_of_distance < square_of_nearest_object_det_distance:
+                nearest_object_det_index = i
+                square_of_nearest_object_det_distance = square_of_distance
+
+        return nearest_object_det_index
+
+    # 目标定位
+    def __locate_target(self, box, cls_name):
+        target_center_x = (box[0] + box[2]) / 2
+        target_center_y = (box[1] + box[3]) / 2
+
+        screen_width, screen_height = self.get_resolution_ratio()
+
+        target_pitch_in_frame, target_yaw_in_frame = get_offset_eularian_angle_to_screen_center(screen_width,
+                                                                                                screen_height,
+                                                                                                self.get_FOV_degree(),
+                                                                                                target_center_x,
+                                                                                                target_center_y)
+
+        body_pitch, _, _ = self.get_body_eularian_angle()
+        # 距目标较近, 低速飞行
+        # body_pitch + self.get_camera_rotation() : NED坐标系下摄像机的俯仰角
+        # target_pitch_in_frame : 相机坐标系下目标的俯仰角
+        if self.__locating or body_pitch + self.get_camera_rotation() + target_pitch_in_frame < - math.pi * 4 / 9:
+            self.__locating = True
+            # 调整相机俯仰角 > -90度
+            if self.get_camera_rotation() > - math.pi / 2:
+                self.rotate_camera(- self.get_max_camera_rotation_rate(), self.get_instruction_duration())
+            
+            else: 
+            # 当相机俯仰角 < -90度, 不调整相机，只调整无人机的飞行
+
+                #计算向前和向右的速度
+                v_front = self.get_max_velocity() * (screen_height / 2 - target_center_y) / 2. / screen_height
+                v_right = self.get_max_velocity() * (target_center_x - screen_width / 2) / 2. / screen_width
+
+                self.move_by_velocity_with_same_direction(v_front, v_right, 0, self.get_instruction_duration())
+                self.__camera_rasing = False
+
+                if math.pow(target_center_x - screen_width / 2, 2) + math.pow(
+                        target_center_y - screen_height / 2,
+                        2) < 150:
+                    x_NED, y_NED, z_NED = self.get_camera_position()
+                    print("target location:" + str(x_NED) + ", " + str(y_NED) + ", 0")
+                    self.__targets.append(
+                        Target(cls_name, x_NED, y_NED, 0))
+        # 距目标较远, 高速飞行
+        else:
+            target_picth_to_body = math.pi / 2 + (body_pitch + self.get_camera_rotation() + target_pitch_in_frame)
+
+            v_front = self.get_max_velocity() * (target_picth_to_body / 5) * math.cos(target_yaw_in_frame)
+            v_right = self.get_max_velocity() * (target_picth_to_body / 5) * math.sin(target_yaw_in_frame)
+
+            # 若目标即将超除上屏幕边缘, 则旋转相机
+            if screen_height - box[3] < 20:
+                self.rotate_camera(- self.get_max_camera_rotation_rate(), self.get_instruction_duration())
+
+            # 若目标即将超出屏幕下边缘, 则调整俯仰角
+            if box[1] < 20:
+                self.rotate_camera(self.get_max_camera_rotation_rate(), self.get_instruction_duration())
+
+            self.move_by_velocity_face_direction(v_front, v_right, 0, self.get_instruction_duration())
+            self.__camera_rasing = False
+
+    # 旋转相机及无人机机体以尝试寻找下一个目标
+    def find_target(self):
+        self.__locating = False
+        if time.time() - self.get_last_controlled_time() > 2:
+            if self.get_camera_rotation() < 0:
+                self.rotate_camera(self.get_max_camera_rotation_rate(), self.get_instruction_duration())
+                self.__camera_rasing = True
+            else:
+                yaw_rate = self.get_max_rotation_rate()
+                yaw_mode = airsim.YawMode(True, yaw_rate)
+                self.move_by_velocity_with_same_direction(0, 0, 0, self.get_instruction_duration(), yaw_mode)
+
+    # 排除已定位目标
+    def __exclude_located_targets(self, dets, frame):
+        final_dets = []
+        # 获取摄像头欧拉角
+        pitch, roll, yaw = self.get_camera_eularian_angle()
+        # 计算欧拉角对应的旋转矩阵
+        M = get_rotation_matrix(pitch, roll, yaw)
+        # 获取摄像头的位置坐标
+        x_NED, y_NED, z_NED = self.get_camera_position()
+        # 获取检测框, 置信度, 类别序号
+        boxes, scores, cls_inds = dets[:, :4], dets[:, 4], dets[:, 5]
+        for i in range(np.array(dets).shape[0]):
+            # 计算检测框的中心位置
+            center_u = (boxes[i, 0] + boxes[i, 2]) / 2
+            center_v = (boxes[i, 1] + boxes[i, 3]) / 2
+
+            ratio_width, ratio_height = self.get_resolution_ratio()  # 获取摄像机分辨率
+
+            half_FOV_rad = (self.get_FOV_degree() / 2) * (math.pi / 180)  # 先得到水平偏航角的一半
+            distance_to_virtual_visual_plane = (ratio_width / 2) / math.tan(half_FOV_rad)
+            u_offset_to_screen_center = center_u - (ratio_width / 2)  # 向右为正
+            v_offset_to_screen_center = center_v - (ratio_height / 2)  # 向下为正
+            # 计算摄像机坐标系下从摄像机到物体方向向量
+            front_n = 1
+            right_n = u_offset_to_screen_center / distance_to_virtual_visual_plane
+            down_n = v_offset_to_screen_center / distance_to_virtual_visual_plane
+            object_vector_n = np.array([[front_n], [right_n], [down_n]])
+            # 计算全局坐标系下从摄像头到物体方向向量
+            dirction_vector = np.matmul(M, object_vector_n)
+            # 该方向向量向下倾斜时
+            if dirction_vector[2] > 0:
+                # 计算目标的全局坐标(其中z坐标简化为0)
+                object_z = 0
+                object_x = x_NED + (object_z - z_NED) / dirction_vector[2, 0] * dirction_vector[0, 0]
+                object_y = y_NED + (object_z - z_NED) / dirction_vector[2, 0] * dirction_vector[1, 0]
+
+                object_located = False
+
+                # 若目标在__targets中,则将其目标框变为绿色
+                for target in self.__targets:
+                    location = target.get_location()
+                    if object_x - location[0] < -2 or object_x - location[0] > 2:
+                        continue
+                    if object_y - location[1] < -2 or object_y - location[1] > 2:
+                        continue
+                    # 将图片的信息组合起来
+                    frame = vis_single_object(frame, boxes[i, :], scores[i],
+                                                self.__pred.class_names[int(cls_inds[i])], [0, 255, 0]) # int(cls_inds[i])
+                    object_located = True
+                    break
+
+                if not object_located:
+                    final_dets = np.concatenate((final_dets, dets[i, :], [object_x, object_y, object_z]))
+        return final_dets, frame
+
+
+####<-------------------------  加入botsort_track_mode的部分 ----------------------------->####
+    def botsort_track_mode(self, origin_frame):
+        """
+        使用BoT-SORT按指定ID跟踪目标车辆，并根据状态标记不同颜色的边界框。
+        :param origin_frame: 无人机摄像头捕获的原始图像帧。
+        """
+        # 使用YOLO检测目标
+        dets = self.__pred.inference_dets(origin_frame, conf=0.5, end2end=False)
+
+        # 若未检测到任何目标，则进入寻找模式
+        if dets is None or len(dets) == 0:
+            self.set_frame(origin_frame)
+            # self.find_target()
+            return
+
+        # print("scores:",dets[:,4])
+
+        # 更新BoT-SORT跟踪器
+        tracked_targets = self.__botsort_tracker.update(dets, origin_frame)
+
+        # 若未跟踪到目标，进入寻找模式
+        if not tracked_targets:
+            self.set_frame(origin_frame)
+            # self.find_target()
+            return
+
+        # 提取BoT-SORT跟踪的目标信息
+        try:
+            boxes = np.array([t.tlbr for t in tracked_targets])  # [x y x y]
+            ids = np.array([t.track_id for t in tracked_targets])   # 目标ID
+            scores = np.array([t.score for t in tracked_targets])   # 目标置信度
+            class_id = np.array([int(t.cls) for t in tracked_targets])  # 目标类别序号
+        except AttributeError:
+            print("跟踪目标数据提取失败，进入寻找模式。")
+            self.set_frame(origin_frame)
+            return
+
+        # current_time = time.time()
+        # # 对当前帧中的所有目标保存快照
+        # for target in tracked_targets:
+        #     target_id = target.cls
+        #     self.__tracking_system.save_target_snapshot(
+        #         target_id,
+        #         origin_frame,
+        #         target,
+        #         {
+        #             'position': self.get_camera_position(),
+        #             'orientation': self.get_camera_eularian_angle(),
+        #             'camera_angle': self.get_camera_rotation()
+        #         }
+        #     )
+        #
+        # # 如果检测到的目标之前存在，但是现在没有
+        # flag = ( self.__botsort_current_target_id and  # 现在又定位的目标
+        #          self.__botsort_current_target_id not in ids and  # 现在没有此目标
+        #          self.__botsort_current_target_id in self.__tracking_system.get_history_target_id()  # 之前有此目标
+        #        )
+        #
+        # if flag:
+        #     # 防止一直恢复
+        #     if current_time - self.__last_recovery_attempt >= self.__recovery_cooldown:
+        #         snapshot = self.__tracking_system.get_latest_snapshot(self.__botsort_current_target_id)
+        #         if snapshot:
+        #             # 恢复到快照状态
+        #             # 恢复无人机的状态
+        #             self.set_position_directly(snapshot.uav_position,snapshot.camera_angle)
+        #
+        #             # 恢复之前的其他状态？
+        #             print(f"已恢复到ID {self.__botsort_current_target_id} 的最近状态")
+        #             self.__last_recovery_attempt = current_time
+                    
+        # print("scores:",scores)
+
+        # 绘制目标框
+        online_im = vis_botsort_track_mode(
+            origin_frame, boxes, ids, scores, class_id, self.__pred.class_names,
+            self.__botsort_current_target_id, self.__botsort_tracked_targets_id
+        )
+
+        # 更新当前帧
+        self.set_frame(online_im)
+
+        # 若当前有跟踪目标，尝试定位目标
+        if self.__botsort_current_target_id is not None:
+            self.__locate_target_by_id(self.__botsort_current_target_id)
+
+
+    def __locate_target_by_id(self, target_id):
+        """
+        根据目标ID进行定位，并控制无人机移动至目标位置。
+        :param target_id: 目标的唯一ID。
+        """
+        # 获取目标对应的跟踪信息
+        tracked_target = next(
+            (t for t in self.__botsort_tracker.tracked_stracks if t.track_id == target_id),
+            None
+        )
+
+        # 若未找到目标，则退出
+        if tracked_target is None:
+            print(f"目标ID {target_id} 未找到。")
+            return
+
+        # 获取目标的边界框
+        target_box = tracked_target.tlbr  # [x1, y1, x2, y2]
+        # 获取目标的种类
+        target_cls_name = self.__pred.class_names[int(tracked_target.cls)]
+
+        # 得到是否接近目标
+        self.__botsort_locating = self.__is_target_close(target_box)
+
+        # 判断目标是否接近
+        if self.__botsort_locating:
+            print(f"目标 {target_id} 已接近，执行低速调整。")
+            self.__adjust_position_to_target(target_box, target_cls_name, low_speed=True)
+        else:
+            print(f"目标 {target_id} 较远，执行高速飞行。")
+            self.__adjust_position_to_target(target_box, target_cls_name, low_speed=False)
+
+
+    def __is_target_close(self, box):
+        # 1. 获取目标中心点坐标
+        target_center_x = (box[0] + box[2]) / 2
+        target_center_y = (box[1] + box[3]) / 2
+
+        # 2. 获取屏幕分辨率信息
+        screen_width, screen_height = self.get_resolution_ratio()
+
+        # 3. 计算目标在画面中的俯仰角和偏航角
+        target_pitch_in_frame, target_yaw_in_frame = get_offset_eularian_angle_to_screen_center(
+            screen_width, screen_height, self.get_FOV_degree(), target_center_x, target_center_y
+        )
+
+        # 4. 获取无人机的机体俯仰角和相机俯仰角
+        body_pitch, _, _ = self.get_body_eularian_angle()
+        camera_rotation = self.get_camera_rotation()
+
+        # 5. 计算目标的相对俯仰角和偏航角
+        relative_pitch_angle = body_pitch + camera_rotation + target_pitch_in_frame  # 俯仰角
+        pitch_threshold = - math.pi * 4 / 9  # 俯仰角阈值
+
+        return relative_pitch_angle < pitch_threshold
+
+
+    def __adjust_position_to_target(self, box, target_cls_name, low_speed=False):
+        """
+        位置调整函数，集成了定位和降速逻辑
+        """
+        screen_width, screen_height = self.get_resolution_ratio()
+        camera_rate = self.get_max_camera_rotation_rate()
+        
+        # 得到速度
+        adaptive_speed = self.get_max_velocity()
+        if low_speed:
+            adaptive_speed /= 2
+        
+        # 获取目标角度和位置信息
+        target_center_x = (box[0] + box[2]) / 2
+        target_center_y = (box[1] + box[3]) / 2
+        target_pitch, target_yaw = get_offset_eularian_angle_to_screen_center(
+            screen_width, screen_height, self.get_FOV_degree(), target_center_x, target_center_y)
+        
+        # 获取当前姿态
+        body_pitch, _, _ = self.get_body_eularian_angle()
+        camera_rotation = self.get_camera_rotation()
+        
+        if self.__botsort_locating:
+            # 精确定位阶段
+            if camera_rotation > -math.pi/2:
+                # 快速调整相机到垂直向下
+                self.rotate_camera(-camera_rate, self.get_instruction_duration())
+            
+            else:
+                # 相机已经垂直向下，执行精确定位
+                v_front = adaptive_speed * (screen_height/2 - target_center_y) / screen_height
+                v_right = adaptive_speed * (target_center_x - screen_width/2) / screen_width
+                
+                self.move_by_velocity_with_same_direction(v_front, v_right, 0, self.get_instruction_duration())
+                self.__camera_rasing = False
+
+                # 判断是否完成定位
+                if math.pow(target_center_x - screen_width / 2, 2) + math.pow(target_center_y - screen_height / 2,2) < 200:
+                    
+                    # 获取目标位置并添加到目标列表
+                    x_NED, y_NED, z_NED = self.get_camera_position()
+                    print(f"目标定位成功：{x_NED}, {y_NED}, {z_NED}")
+                    self.__botsort_tracked_targets.append(TargetTracker(target_cls_name, x_NED, y_NED, 0, self.__botsort_current_target_id))
+                    self.__botsort_tracked_targets_id.append(self.__botsort_current_target_id)
+
+                    # 定位成功，并且把目前的curent_target变为空，重新获得下一个目标
+                    self.__botsort_current_target_id = self.get_next_target_id()
+        else:
+            target_picth_to_body = math.pi / 2 + (body_pitch + self.get_camera_rotation() + target_pitch)
+            
+            # 分解速度
+            v_front = adaptive_speed * (target_picth_to_body / 5) * math.cos(target_yaw)
+            v_right = adaptive_speed * (target_picth_to_body / 5) * math.sin(target_yaw)
+            
+            # 调整相机角度，保持目标在视野中
+            if screen_height - box[3] < 20:
+                self.rotate_camera(-camera_rate, self.get_instruction_duration())
+
+            # 若目标即将超出屏幕下边缘, 则调整俯仰角
+            if box[1] < 20:
+                self.rotate_camera(camera_rate, self.get_instruction_duration())
+            
+            self.move_by_velocity_face_direction(v_front, v_right, 0, self.get_instruction_duration())
+            self.__camera_rasing = False
+
+    def save_current_context(self, target_id, bbox):
+        """保存当前ID的上下文"""
+        self.__last_id_context[target_id] = {
+            'timestamp': time.time(),
+            'position': self.get_position(),
+            'camera_angle': self.get_camera_rotation(),
+            'bbox': bbox
+        }
+
+    def restore_id_context(self, target_id):
+        """恢复指定ID的上下文"""
+        context = self.__last_id_context.get(target_id)
+        if not context:
+            return False
+            
+        # 检查上下文是否过期
+        if time.time() - context['timestamp'] > self.__context_timeout:
+            return False
+            
+        # 恢复位置和相机角度
+        self.move_to_position(*context['position'])
+        self.rotate_camera(context['camera_angle'])
+        return True
+
+    # 用于估算距离并自适应的得到速度的函数（未启用）
+    def calculate_adaptive_velocity(self, target_box, screen_width, screen_height):
+        """
+        计算自适应速度，加入精确降速和姿态控制，同时消除Z轴对目标大小的影响
+        参数:
+            target_box: [x1, y1, x2, y2] 目标框坐标
+            screen_width/height: 屏幕尺寸
+        返回:
+            速度值和是否进入精确定位阶段
+        """
+        # 计算目标中心点
+        target_center_x = (target_box[0] + target_box[2]) / 2
+        target_center_y = (target_box[1] + target_box[3]) / 2
+
+        # 计算画面中心的偏移量（归一化）
+        x_offset = (target_center_x - screen_width / 2) / (screen_width / 2)  # [-1,1]
+        y_offset = (target_center_y - screen_height / 2) / (screen_height / 2)
+        position_offset = math.sqrt(x_offset**2 + y_offset**2)  # 偏移的归一化距离
+
+        # 计算目标角度（俯仰角和偏航角）
+        target_pitch_in_frame, target_yaw_in_frame = get_offset_eularian_angle_to_screen_center(
+            screen_width, screen_height, self.get_FOV_degree(), target_center_x, target_center_y
+        )
+
+        # 使用目标角度的变化代替目标大小
+        # 目标角度越小（更接近中心），认为越接近目标
+        angle_offset = math.sqrt(target_pitch_in_frame**2 + target_yaw_in_frame**2)  # 综合俯仰和偏航的角度变化
+
+        # 定位模式下，速度降低
+        if self.__botsort_locating:
+            # 精确定位阶段：使用非常低的速度
+            base_speed = self.get_max_velocity() * 0.5  # 低速模式下速度降低一半
+            speed = base_speed * position_offset  # 偏移越大速度越大，但总体保持低速
+        # 高速模式：基于角度和偏移动态调整速度
+        else:
+            # 使用角度和位置偏移的动态因子
+            distance_factor = max(0.0, angle_offset * 5)  # 越接近目标，distance_factor 越小
+            sigmoid_factor = 1 / (1 + math.exp(-5 * (distance_factor + position_offset - 0.5)))  # 使用 sigmoid 平滑速度
+            speed = sigmoid_factor * self.get_max_velocity()
+
+        return speed
+
+

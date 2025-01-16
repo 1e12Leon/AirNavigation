@@ -1,0 +1,9 @@
+airsim==1.8.1
+matplotlib==3.7.0
+numpy==1.23.5
+opencv_contrib_python==4.7.0.68
+opencv_python==4.5.5.62
+pycuda==2022.2.2
+PyQt5==5.15.9
+PyQt5_sip==12.12.1
+tensorrt==8.2.1.8
