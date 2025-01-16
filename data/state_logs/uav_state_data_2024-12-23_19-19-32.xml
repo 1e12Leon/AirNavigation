@@ -1,0 +1,27 @@
+<?xml version='1.0' encoding='utf-8'?>
+<UAVLogs>
+    <LogEntry>
+        <Timestamp>1734952771.6150007</Timestamp>
+        <Position>
+            <X>0.0</X>
+            <Y>0.0</Y>
+            <Z>-8.214829444885254</Z>
+        </Position>
+        <Velocity>
+            <VX>0.0</VX>
+            <VY>0.0</VY>
+            <VZ>-0.0013090616557747126</VZ>
+        </Velocity>
+        <EulerAngles>
+            <Pitch>0.0</Pitch>
+            <Roll>0.0</Roll>
+            <Yaw>0.2988280448435075</Yaw>
+        </EulerAngles>
+        <AngularVelocity>
+            <RollRate>0.0</RollRate>
+            <PitchRate>0.0</PitchRate>
+            <YawRate>-1.062530330386835e-07</YawRate>
+        </AngularVelocity>
+    </LogEntry>
+
+    

@@ -1,0 +1,13 @@
+SUV
+Van
+BoxTruck
+Pickup
+Sedan
+Trailer
+Truck
+ForkLift
+Jeep
+Motor
+Bulldozer
+Excavator
+RoadRoller
