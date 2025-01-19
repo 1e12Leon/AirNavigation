@@ -34,7 +34,7 @@ class UAVController:
         self.__control_client = airsim.MultirotorClient()
         self.__name = ""
         self.__instruction_duration = 0.04  # 无人机操作的间隔时间
-        self.__max_velocity = 10.           # 最大速度
+        self.__max_velocity = 50.           # 最大速度
         self.__max_rotation_rate = 30.      # 最大旋转速率(指yaw角)
         self.__camera_rotation = 0.  # [-math.pi/2, 0]     # 相机旋转角
         self.__max_camera_rotation_rate = math.pi / 4      # 相机旋转速度(指pitch角)
@@ -51,6 +51,10 @@ class UAVController:
         self.__recording = False  # 控制记录状态
         self.__log_data = []  # 存储记录的数据
         self.__recording_interval = 0.2  # 记录间隔（秒）
+        
+        self.__monitoring = False  # 控制记录状态
+        self.__monitoring_data = []
+        self.__monitoring_interval = 0.2
 
         self.__get_start_uav() # 获取json文件的无人机名称
 
@@ -327,6 +331,10 @@ class UAVController:
         _, _, yaw = airsim.to_eularian_angles(orientation)
 
         vx_NED, vy_NED, vz_NED = velocity_body_frame_to_NED(v_front, v_right, vz, yaw)
+        print("NED", vx_NED, vy_NED, vz_NED, duration, airsim.DrivetrainType.MaxDegreeOfFreedom, yaw_mode, self.__name)
+        state = self.__control_client.getMultirotorState(self.__name)
+        current_altitude = state.kinematics_estimated.position.z_val
+        print(f"Current altitude: {current_altitude}")
 
         self.__control_client.moveByVelocityAsync(vx_NED, vy_NED, vz_NED, duration,
                                                   airsim.DrivetrainType.MaxDegreeOfFreedom,
@@ -447,6 +455,52 @@ class UAVController:
     def get_log_data(self):
         """ 获取记录的数据 """
         return self.__log_data
+    
+    # monitoring
+
+    def start_monitoring(self, monitoring_interval=0.2):
+        """ 启动记录
+            monitoring_interval: 记录间隔，单位为秒, 默认为：0.2 秒
+        """
+        self.__monitoring_interval = monitoring_interval
+        if not self.__monitoring:
+            self.__monitoring = True
+            self.__monitoring_data = []  # 清空以前的记录
+            self._monitoring_data()  # 开始记录
+
+    # 停止记录
+    def stop_monitoring(self) -> str:
+        if self.__monitoring:
+            self.__monitoring = False
+            # 记录结束后自动保存到XML文件
+            return self._save_to_xml_monitoring()
+
+    # 定时记录无人机的状态
+    def _monitoring_data(self):
+        if self.__monitoring:
+            # 获取无人机的状态信息
+            position = self.get_body_position()  # 获取位置
+            velocity = self.get_velocity()  # 获取速度
+            euler_angles = self.get_body_eularian_angle()  # 获取姿态角
+            angular_velocity = self.get_angular_velocity()  # 获取角速度变化率
+
+            # 存储记录
+            monitoring_entry = {
+                'timestamp': time.time(),
+                'position': position,
+                'velocity': velocity,
+                'euler_angles': euler_angles,
+                'angular_velocity': angular_velocity
+            }
+            self.__monitoring_data.append(monitoring_entry)
+
+            # 每隔一定时间再次调用记录函数
+            threading.Timer(self.__monitoring_interval, self._monitoring_data).start()
+
+
+    def get_monitoring_data(self):
+        """ 获取记录的数据 """
+        return self.__monitoring_data
 
 
     # 获取无人机的速度
@@ -464,7 +518,7 @@ class UAVController:
         return angular_velocity.x_val, angular_velocity.y_val, angular_velocity.z_val
 
     # 将记录保存到 XML 文件
-    def _save_to_xml(self, flag = True) -> str:
+    def _save_to_xml(self,flag = True) -> str:
         """ 将记录的数据写入格式化 XML 文件 """
         # 获取当前时间并格式化为字符串
         current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -514,6 +568,47 @@ class UAVController:
             xml_file.write(formatted_xml)
 
         print(f"数据已保存到 {xml_filename}")
+        return formatted_xml
+    
+    def _save_to_xml_monitoring(self,flag = True) -> str:
+        """ 将记录的数据写入格式化 XML """
+        # 获取当前时间并格式化为字符串
+        current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
+        # 创建 XML 根元素
+        root = ET.Element("UAVMonitoring")
+
+        # 遍历所有记录
+        for entry in self.__monitoring_data:
+            log_entry_element = ET.SubElement(root, "LogEntry")
+
+            # 添加每个记录的子元素
+            ET.SubElement(log_entry_element, "Timestamp").text = str(entry['timestamp'])
+            position = ET.SubElement(log_entry_element, "Position")
+            ET.SubElement(position, "X").text = str(entry['position'][0])
+            ET.SubElement(position, "Y").text = str(entry['position'][1])
+            ET.SubElement(position, "Z").text = str(entry['position'][2])
+
+            velocity = ET.SubElement(log_entry_element, "Velocity")
+            ET.SubElement(velocity, "VX").text = str(entry['velocity'][0])
+            ET.SubElement(velocity, "VY").text = str(entry['velocity'][1])
+            ET.SubElement(velocity, "VZ").text = str(entry['velocity'][2])
+
+            euler_angles = ET.SubElement(log_entry_element, "EulerAngles")
+            ET.SubElement(euler_angles, "Pitch").text = str(entry['euler_angles'][0])
+            ET.SubElement(euler_angles, "Roll").text = str(entry['euler_angles'][1])
+            ET.SubElement(euler_angles, "Yaw").text = str(entry['euler_angles'][2])
+
+            angular_velocity = ET.SubElement(log_entry_element, "AngularVelocity")
+            ET.SubElement(angular_velocity, "RollRate").text = str(entry['angular_velocity'][0])
+            ET.SubElement(angular_velocity, "PitchRate").text = str(entry['angular_velocity'][1])
+            ET.SubElement(angular_velocity, "YawRate").text = str(entry['angular_velocity'][2])
+
+        # 转换为字符串并格式化
+        raw_xml = ET.tostring(root, encoding="utf-8")
+        dom = parseString(raw_xml)
+        formatted_xml = dom.toprettyxml(indent="  ")
+
         return formatted_xml
 
 async def fetch_frame_async(image_client, capture_type, vehicle_name):

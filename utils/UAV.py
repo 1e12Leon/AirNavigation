@@ -7,7 +7,7 @@ class UAV(Navigator):
     def __init__(self):
         super().__init__()
 
-        self.work_list = ['normal', 'detect', 'track', 'botsort']
+        self.work_list = ['normal', 'detect', 'track', 'botsort', "base"]
         self.__default_work_mode = 'normal'  # ['normal', 'detect', 'track'] # 工作模式
         self.__work_mode = None                            # 当前工作模式
         self.__started = False                             # 是否开始UAV
@@ -31,6 +31,10 @@ class UAV(Navigator):
             if self.__work_mode == 'botsort':
                 self.botsort_track_mode(origin_frame)
                 continue
+            if self.__work_mode == 'base':
+                self.base_mode(origin_frame)
+                continue
+
     
     # 无人机停止工作函数
     def stop(self):
@@ -68,4 +72,5 @@ class UAV(Navigator):
 
     # 一般模式
     def normal_mode(self,origin_frame):
-        self.set_frame(origin_frame)
+        #self.set_frame(origin_frame)
+        self.base_mode(origin_frame)

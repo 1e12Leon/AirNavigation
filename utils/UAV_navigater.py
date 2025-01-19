@@ -141,6 +141,16 @@ class Navigator(UAVController):
         else:
             self.set_frame(origin_frame)
 
+    # # 一般模式
+    # def normal_mode(self, origin_frame):
+    #     self.set_frame(origin_frame)
+
+    def base_mode(self, origin_frame):
+        # 用已有的引擎检测目标 origin_frame:原始图片 conf:置信度
+        dets = self.__pred.inference_dets(origin_frame, conf=0.5, end2end=False)  # , white_list=[1])
+        self.set_frame(origin_frame)
+        return
+
     # 自主导引模式（测试的导航算法）
     def track_mode(self,origin_frame):
         # 获取目标检测结果

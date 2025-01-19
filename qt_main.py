@@ -17,7 +17,7 @@ def create_dirs():
 
 if __name__ == '__main__':
     create_dirs()
-    fps = 60             # 视频帧率
+    fps = 500            # 视频帧率
 
     # PyQt界面初始化
     app = QApplication(sys.argv)
