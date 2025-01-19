@@ -4,6 +4,7 @@ import datetime
 import cv2
 import math
 
+import numpy as np
 from sympy import evaluate
 
 from utils.UAV import UAV
@@ -13,28 +14,11 @@ from utils.weather_controller import WeatherController
 from utils.widgets import *
 from utils.utils import close_UE,wait_for_ue_startup,create_directory_if_not_exists
 import subprocess
-from utils.evaluate import evaluate_all_flight
+from utils.evaluate import evaluate_all_flight,evaluate_realtime_flight
+from utils.dialogs import LoadingDialog
+from utils.threads import EvaluationThread,MonitoringThread
 
 from PyQt5.QtCore import QThread, pyqtSignal
-
-class EvaluationThread(QThread):
-    # 定义信号，传递评估结果
-    evaluation_signal = pyqtSignal(str)
-
-    def __init__(self, log_data: str):
-        super().__init__()
-        self.log_data = log_data  # 保存日志数据
-
-    def run(self):
-        """
-        线程运行逻辑：执行耗时的评估操作。
-        """
-        try:
-            result = evaluate_all_flight(self.log_data)
-            self.evaluation_signal.emit(result)  # 通过信号传递结果
-        except Exception as e:
-            error_message = f"Error during evaluation: {e}"
-            self.evaluation_signal.emit(error_message)  # 通过信号传递错误信息
 
 # 根据当前键盘中控制无人机方向的按键计算无人机飞行速度
 def calculate_velocity(velocity_value, direction_vector: list):
@@ -60,7 +44,6 @@ def calculate_velocity(velocity_value, direction_vector: list):
     v_front, v_right, vz = final_v
 
     return v_front, v_right, vz
-
 
 # PyQt主界面
 class MainWindow(QWidget):
@@ -96,6 +79,8 @@ class MainWindow(QWidget):
         self.btn_capture = None
         self.btn_export_targets = None
         self.btn_record_state = None
+        self.btn_toggle_monitoring = None
+        
         self.label_status = None
         self.label_image = None
         self.change_weather_widget = None
@@ -110,6 +95,7 @@ class MainWindow(QWidget):
         self.record_state_flag = False  # 记录状态标志
         self.timer = QtCore.QTimer()  # 定时器，用于更新界面
         self.record_realtime_state = False  # 记录实时状态标志
+        self.monitoring_flag = False  # 监控标志
 
 
         self.set_ui()  # 初始化界面
@@ -269,12 +255,15 @@ class MainWindow(QWidget):
         # 按钮区域
         button_layout = QHBoxLayout()
 
-        self.enable_monitoring_button = QPushButton("Enable monitoring")
-        #self.enable_monitoring_button.clicked.connect(self.toggle_monitoring)
-        button_layout.addWidget(self.enable_monitoring_button)
+        self.btn_toggle_monitoring = QPushButton("START MONITORING")
+        self.btn_toggle_monitoring.clicked.connect(self.toggle_monitoring)
+        self.btn_toggle_monitoring.setFocusPolicy(Qt.NoFocus)  # 禁用键盘焦点
+        button_layout.addWidget(self.btn_toggle_monitoring)
+        self.btn_toggle_monitoring.setEnabled(False)
 
         self.clear_button = QPushButton("Clear")
         self.clear_button.clicked.connect(self.clear_status_text)
+        self.clear_button.setFocusPolicy(Qt.NoFocus)
         button_layout.addWidget(self.clear_button)
 
         layout.addLayout(button_layout)  # 将按钮布局添加到主布局
@@ -287,6 +276,7 @@ class MainWindow(QWidget):
         self.text_edit_status = QTextEdit()
         self.text_edit_status.setObjectName("statusTextEdit")
         self.text_edit_status.setReadOnly(True)  # 设置为只读模式，防止用户编辑
+        self.text_edit_status.setFocusPolicy(Qt.NoFocus)  # 禁用键盘焦点
         status_layout.addWidget(self.text_edit_status)
 
         status_group.setLayout(status_layout)
@@ -300,6 +290,45 @@ class MainWindow(QWidget):
     def clear_status_text(self):
         self.text_edit_status.clear()
 
+    def toggle_monitoring(self):
+        if self.monitoring_flag:
+            # 停止监控
+            self.monitoring_flag = False
+            self.btn_toggle_monitoring.setText("START MONITORING")
+            if self.monitoring_thread:
+                self.monitoring_thread.stop()
+                self.monitoring_thread.wait()
+            self.update_status_text("Monitoring stopped.")
+        else:
+            # 开始监控 
+            self.monitoring_flag = True
+            self.btn_toggle_monitoring.setText("STOP MONITORING")
+
+            # 创建并启动监控线程
+            self.monitoring_thread = MonitoringThread(self.fpv_uav)
+            self.monitoring_thread.monitoring_signal.connect(self.update_status_text)
+            self.monitoring_thread.start()
+            self.update_status_text("Monitoring started")
+
+    # def record_state(self):
+    #     if self.record_state_flag:
+    #         self.record_state_flag = False
+    #         self.btn_record_state.setText("RECORD STATUS")
+    #         now_time = datetime.now().strftime('date_%m_%d_%H_%M_%S')
+    #         log_data = self.fpv_uav.stop_logging()
+
+    #         # 主线程中更新初始状态
+    #         self.thread = EvaluationThread(log_data)
+    #         self.thread.evaluation_signal.connect(self.update_status_text)
+    #         self.thread.start()
+
+    #         print("Successfully stopped recording state!")
+    #     else:
+    #         self.record_state_flag = True
+    #         self.fpv_uav.start_logging(self.record_interval)
+    #         self.btn_record_state.setText("STOP")
+    #         self.update_status_text("Recording started...\n")
+    #         print("Successfully started recording state!")
 
     def _create_bottom_bar(self):
         """创建底部状态栏"""
@@ -452,9 +481,12 @@ class MainWindow(QWidget):
 
         # 由于这个地图比较大，所以需要等待一段时间后才能开始连接无人机
         if self.fpv_uav.map_controller.get_map_name() == "small_city":
-            time.sleep(20)
+            LoadingDialog.load_with_dialog(40, self.after_loading_map)
 
-        
+    def after_loading_map(self):
+        # 这里是加载完成后要执行的代码
+        print("Map loaded, now connecting to drone.")
+        # 继续连接无人机的操作...
         # 连接无人机
         self.fpv_uav.set_default_work_mode('normal')
         self.fpv_uav.set_instruction_duration(1. / self.fps)
@@ -479,6 +511,7 @@ class MainWindow(QWidget):
         self.btn_change_uav.setEnabled(True)
         self.btn_change_map.setEnabled(True)
         self.btn_record_state.setEnabled(True)
+        self.btn_toggle_monitoring.setEnabled(True)
 
         # 替换原来的轨迹相关代码
         self.trajectory_viewer.fpv_uav = self.fpv_uav
@@ -701,7 +734,6 @@ class MainWindow(QWidget):
         if self.record_state_flag:
             self.record_state_flag = False
             self.btn_record_state.setText("RECORD STATUS")
-            now_time = datetime.now().strftime('date_%m_%d_%H_%M_%S')
             log_data = self.fpv_uav.stop_logging()
 
             # 主线程中更新初始状态
@@ -828,8 +860,18 @@ class MainWindow(QWidget):
         else:
             width = image_label_width
             height = int(image_label_width / image_w_h_ratio)
-    
-        frame = cv2.resize(frame, (width, height))
+        if frame is None or not isinstance(frame, np.ndarray):
+            print("No image received!")
+            return
+
+        if width <= 0 or height <= 0:
+            print("Invalid image size!")
+            return
+        try:
+            frame = cv2.resize(frame, (width, height))
+        except cv2.error as e:
+            print("Error in resizing image: ", e)
+            return
 
         # 将缩放后的图片转换至所需颜色模式, 并放置在label_image上
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -858,7 +900,6 @@ class MainWindow(QWidget):
     # 键盘控制函数
     def keyboard_control(self):
         pressed_keys = self.pressed_keys
-
         direction_vector = [0, 0, 0]  # 前, 右, 下
         is_move = False
 
@@ -919,8 +960,11 @@ class MainWindow(QWidget):
         if is_move:
             velocity_value = self.fpv_uav.get_max_velocity()  # 得到UAV的速率
             v_front, v_right, vz = calculate_velocity(velocity_value, direction_vector)  # 得到无人机每一个方向的速度
-
+            print(v_front, v_right, vz, 1. / self.fps, yaw_mode)
             # 参数分别表示为：正向速度 右向速度 下向速度 持续时间 是否采用偏航模式
+
+            # if self.fpv_uav.get_work_mode() == "normal" and vz < 0:
+            #     vz = 10 * vz
             self.fpv_uav.move_by_velocity_with_same_direction_async(v_front, v_right, vz, 1. / self.fps, yaw_mode)
 
     # # 键盘控制函数

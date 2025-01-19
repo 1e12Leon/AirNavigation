@@ -112,7 +112,7 @@ class ChangeWorkModeWidget(QWidget):
         super(ChangeWorkModeWidget, self).__init__()
         self.setWindowIcon(QtGui.QIcon('data/pics/logo_hhu.png'))
         self.setWindowTitle("CHANGE MODE")
-        self.resize(400, 200)
+        self.resize(500, 300)
 
         self.uav = uav
 
