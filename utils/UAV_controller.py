@@ -7,6 +7,8 @@ import cv2
 import json
 import numpy as np
 import asyncio
+
+from utils.CommandDecorator import command,CommandType
 from utils.utils import vis,run_bat_file,restart_UE
 from utils.map_controller import MapController
 import xml.etree.ElementTree as ET
@@ -34,11 +36,12 @@ class UAVController:
         self.__control_client = airsim.MultirotorClient()
         self.__name = ""
         self.__instruction_duration = 0.04  # 无人机操作的间隔时间
-        self.__max_velocity = 50.           # 最大速度
+        self.__max_velocity = 10.           # 最大速度
         self.__max_rotation_rate = 30.      # 最大旋转速率(指yaw角)
         self.__camera_rotation = 0.  # [-math.pi/2, 0]     # 相机旋转角
         self.__max_camera_rotation_rate = math.pi / 4      # 相机旋转速度(指pitch角)
-        self.__resolution_ratio = [1920, 1080]             # 分辨率比例 即 width 与 height [1280,720]
+        # self.__resolution_ratio = [1920, 1080]             # 分辨率比例 即 width 与 height [1280,720]
+        self.__resolution_ratio = [752, 480]
         self.__connected = False                           # 是否连接UAV
         self.__FOV_degree = 90.             # 水平视场角
         self.__frame = np.array([0])                       # 存储无人机当前图像
@@ -61,10 +64,18 @@ class UAVController:
     # 得到所有图像类型
     def get_capture_all_image_kinds(self):
         return self.__capture_all_image_kinds
-    
+
+    # 得到控制器
+    def get_control_client(self):
+        return self.__control_client
+
     # 设置捕获图像类型
     def set_capture_type(self, capture_type):
         self.__capture_type = capture_type
+
+    # 设置摄像头角度
+    def set_camera_rotate(self, rotate):
+        self.__camera_rotation = rotate
     
     # 得到捕获图像类型
     def get_capture_type(self):
@@ -130,7 +141,8 @@ class UAVController:
         self.__name = vehicle_name
 
         return vehicle_name
-    
+
+
     # 获取摄像机分辨率
     def get_resolution_ratio(self):
         return self.__resolution_ratio
@@ -162,8 +174,24 @@ class UAVController:
     def get_max_rotation_rate(self):
         return self.__max_rotation_rate
 
-    # 建立连接
+    @command(
+        description="初始化并起飞默认无人机",
+        command_type=CommandType.BASIC,
+        trigger_words=["起飞", "开始", "启动", "升空", "飞行准备"],
+        parameters={},
+        addtional_info="""
+            用于初始化并起飞默认无人机，示例：
+            - 用户：起飞无人机 -> connect
+            - 用户：准备起飞 -> connect
+            - 用户：开始飞行 -> connect
+
+            注意：此命令只能用于控制默认无人机，不适用于多机控制。
+            """
+    )
     def connect(self):
+        """
+        建立连接
+        """
         if not self.__connected:
             self.__control_client.enableApiControl(True, self.__name)
             self.__control_client.armDisarm(True, self.__name)
@@ -610,6 +638,47 @@ class UAVController:
         formatted_xml = dom.toprettyxml(indent="  ")
 
         return formatted_xml
+
+    @command(
+        description="将默认无人机飞行到指定位置",
+        command_type=CommandType.BASIC,
+        trigger_words=["飞到", "移动到", "前往", "到达坐标"],
+        parameters={
+            "target": {
+                "description": "三维坐标，必须使用括号，是一个tuple，如 (x, y, z)",
+                "type": tuple
+            },
+            "velocity": {
+                "description": "可选的飞行速度(米/秒)，默认2m/s",
+                "type": float
+            }
+        },
+        addtional_info="""
+            用于控制默认无人机飞到指定的坐标位置，示例：
+            - 用户：飞到(10,20,-30) -> fly_to_position --target "(10,20,-30)"
+            - 用户：按照10m/s的速度飞到(10,20,-30) -> fly_to_position --target "(10,20,-30)" --velocity 10
+            - 用户：返回原点 -> fly_to_position --target "(0,0,0)"
+
+            注意：
+            1. 坐标使用无人机坐标系，z轴向上为负
+            2. 此命令只能用于控制默认无人机，不适用于多机控制
+            3. 速度参数为可选项，默认2m/s
+            4. target参数必须在输出时有引号
+            """
+    )
+    def fly_to_position(self, target, velocity=2.0):
+        """
+        控制无人机飞到指定的坐标 (x, y, z)，带位置监控和超时控制
+
+        Args:
+            pos (tuple): 目标位置 (x, y, z)
+            velocity (float): 飞行速度
+        Returns:
+            bool: 是否成功到达目标位置
+        """
+        target_x, target_y, target_z = target
+        self.__control_client.moveToPositionAsync(target_x, target_y, target_z, velocity, vehicle_name=self.__name).join()
+
 
 async def fetch_frame_async(image_client, capture_type, vehicle_name):
     response = await asyncio.to_thread(
