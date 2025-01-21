@@ -3,6 +3,9 @@ import airsim
 import time
 import numpy as np
 import sys
+
+import pygame
+
 from BotSort_tracker.tracker.bot_sort import BoTSORT
 from BotSort_tracker.visualize import plot_tracking
 # from utils.target_tracking_system import TargetTrackingSystem
@@ -604,4 +607,301 @@ class Navigator(UAVController):
 
         return speed
 
+    #######################################
+    # @command(
+    #     description="启用键盘控制模式",
+    #     command_type=CommandType.BASIC,
+    #     trigger_words=["键盘控制", "手动控制", "玩家控制", "交互控制"],
+    #     parameters={},
+    #     addtional_info="""
+    #         键盘控制说明：
+    #         - 方向键: 控制前后左右移动
+    #         - W/S: 控制上升/下降
+    #         - A/D: 控制左右旋转
+    #         - Q/E: 控制相机俯仰
+    #         - Space: 加速移动
+    #         - P: 拍摄图像
+    #         - ESC: 退出控制
+    #         """
+    # )
+    # def fly_with_keyboard_control(self):
+    #     """使用键盘控制无人机飞行"""
+    #     self.pygame_init()
+    #
+    #     while True:
+    #         yaw_rate = 0.0
+    #         velocity_x = velocity_y = velocity_z = 0.0
+    #         time.sleep(0.02)
+    #
+    #         for event in pygame.event.get():
+    #             if event.type == pygame.QUIT:
+    #                 pygame.quit()
+    #                 return
+    #
+    #         speedup_ratio = 10.0
+    #         vehicle_yaw_rate = 5.0
+    #         scan_wrapper = pygame.key.get_pressed()
+    #         scale_ratio = speedup_ratio if scan_wrapper[pygame.K_SPACE] else 1.0
+    #
+    #         # 处理偏航控制
+    #         if scan_wrapper[pygame.K_a] or scan_wrapper[pygame.K_d]:
+    #             yaw_rate = (scan_wrapper[pygame.K_d] - scan_wrapper[pygame.K_a]) * scale_ratio * vehicle_yaw_rate
+    #
+    #         # 处理前后移动
+    #         if scan_wrapper[pygame.K_UP] or scan_wrapper[pygame.K_DOWN]:
+    #             velocity_x = (scan_wrapper[pygame.K_UP] - scan_wrapper[pygame.K_DOWN]) * scale_ratio
+    #
+    #         # 处理左右移动
+    #         if scan_wrapper[pygame.K_LEFT] or scan_wrapper[pygame.K_RIGHT]:
+    #             velocity_y = -(scan_wrapper[pygame.K_LEFT] - scan_wrapper[pygame.K_RIGHT]) * scale_ratio
+    #
+    #         # 处理上下移动
+    #         if scan_wrapper[pygame.K_w] or scan_wrapper[pygame.K_s]:
+    #             velocity_z = -(scan_wrapper[pygame.K_w] - scan_wrapper[pygame.K_s]) * scale_ratio
+    #
+    #
+    #
+    #         # 处理相机旋转
+    #         if scan_wrapper[pygame.K_q] or scan_wrapper[pygame.K_e]:
+    #             self.camera_rotations += (scan_wrapper[pygame.K_q] - scan_wrapper[
+    #                 pygame.K_e]) * math.pi / 6 * 0.02 * scale_ratio
+    #             self.camera_rotations = max(-math.pi / 2, min(0, self.camera_rotations))
+    #             camera_pose = airsim.Pose(airsim.Vector3r(0, 0, 0),
+    #                                       airsim.to_quaternion(self.camera_rotations, 0, 0))
+    #             self.__control_client.simSetCameraPose("0", camera_pose, vehicle_name=self.vehicle_name)
+    #
+    #         # 应用移动控制
+    #         self.get_control_client().moveByVelocityBodyFrameAsync(
+    #             vx=velocity_x,
+    #             vy=velocity_y,
+    #             vz=velocity_z,
+    #             duration=0.02,
+    #             yaw_mode=airsim.YawMode(True, yaw_or_rate=yaw_rate),
+    #             vehicle_name=self.get_name()
+    #         )
+    #
+    #         # 处理退出条件
+    #         if scan_wrapper[pygame.K_ESCAPE] or scan_wrapper[pygame.K_PERIOD]:
+    #             pygame.quit()
+    #             break
 
+    @command(
+        description="控制无人机自动找到描述的目标",
+        command_type=CommandType.VISION,
+        trigger_words=["飞到右边树木旁边", "找到前方的红色车", "寻找蓝色卡车", "视觉导航"],
+        parameters={
+            "description": {
+                "description": "目标描述，用于识别和追踪的目标特征描述",
+                "type": str
+            }
+        },
+        addtional_info="""
+        用于控制无人机自动追踪视觉目标，示例：
+        - 用户：追踪红色轿车 -> vis_mode --description "红色轿车"
+        - 用户：寻找蓝色卡车 -> vis_mode --description "蓝色卡车"
+        - 用户：搜索白色面包车 -> vis_mode --description "白色面包车"
+
+        注意：
+        1. 此命令使用视觉AI模型进行目标识别和追踪
+        2. 目标描述应尽可能具体，包含方位 颜色、类型等特征
+        3. 追踪过程中会自动调整无人机位置和姿态
+        """
+    )
+    def vis_mode(self, description):
+        """
+        根据传入的描述，追踪目标
+        使用基于图像的控制策略，不依赖深度信息
+
+        Args:
+            description (str): 目标描述，例如"Find the red car"
+        """
+        from ai.ai_vision import GenimiUAVVision
+        # api_key1 = "AIzaSyD62p0LDXueWr1D1NOMbcFpC1zU9IdvSnU"
+        api_key2 = "AIzaSyDFNNDLUzz_wwBFPTs4m0jiV7SWfO5JTAc"
+        uav_vision_ai = GenimiUAVVision(api_key=api_key2, drone_controller=self)
+
+        # 初始检测
+        bbox = uav_vision_ai.analyze_scene_for_target(description)
+        if len(bbox) == 0:
+            print("No target found matching description")
+            return
+
+        # print("Initial target bbox:", bbox)
+        update_counter = 0
+        max_attempts = 5
+        attempt_count = 0
+
+        PITCH_THRESHOLD = 0.5  # 俯仰角度阈值，超过阈值则停止追踪
+        while attempt_count < max_attempts:
+            attempt_count += 1
+
+            # 1. 计算目标在图像中的中心点
+            center_u = (bbox[0] + bbox[2]) / 2
+            center_v = (bbox[1] + bbox[3]) / 2
+
+            # 计算无人机旋转到目标的yaw角度
+            screen_width, screen_height = self.get_resolution_ratio()
+            pitch, yaw = get_offset_eularian_angle_to_screen_center(screen_width,
+                                                                    screen_height,
+                                                                    self.get_FOV_degree(),
+                                                                    center_u,
+                                                                    center_v)
+
+            print(f"pitch={pitch:.2f}, yaw={yaw:.2f}")
+
+            # 将无人机摄像机中心对准目标中心
+            # 旋转无人机机身
+            self.rotate_drone(yaw / math.pi * 180)
+            time.sleep(0.05)  # 使用更短的延时
+
+            # # 旋转摄像机
+            self.rotate_camera2(pitch, 0.005)
+
+            # 计算无人机飞向目标的方向向量
+            direction = self.get_moving_vector(bbox)
+            # 飞往目标方向
+            self.move_by_velocity(direction, self.get_max_velocity(), 10)
+
+            # 检查pitch角度是否达到阈值
+            if pitch < PITCH_THRESHOLD:
+                # print(f"Pitch angle {pitch:.2f} reached threshold {PITCH_THRESHOLD:.2f}, stopping tracking")
+                break
+
+            # 初始检测
+            bbox = uav_vision_ai.analyze_scene_for_target(description)
+            if len(bbox) == 0:
+                print("No target found matching description")
+                return
+
+            # 7. 短暂延时
+            time.sleep(0.02)  # 使用更短的延时
+
+        print(f"Vision mode completed after {attempt_count} attempts")
+
+    def rotate_drone(self, target_angle, rotation_rate=5.0):
+        """旋转无人机
+
+        Args:
+            rotation_rate (float): 旋转速率（单位：度/秒）
+            target_angle (float): 目标旋转角度（单位：度）
+        """
+        # 获取当前无人机的姿态
+        state = self.get_control_client().getMultirotorState(vehicle_name=self.get_name())
+        orientation = state.kinematics_estimated.orientation
+        _, _, current_yaw = airsim.to_eularian_angles(orientation)
+
+        # 计算目标偏航角（弧度）
+        target_yaw = current_yaw + math.radians(target_angle)
+        # 限制偏航角在 -pi 到 pi 范围内
+        target_yaw = (target_yaw + math.pi) % (2 * math.pi) - math.pi
+
+        # 使用rotateToYawAsync来执行旋转
+        self.get_control_client().rotateToYawAsync(math.degrees(target_yaw),
+                                     vehicle_name=self.get_name()).join()
+
+    def move_by_velocity(self, direction, velocity, duration):
+        """
+        使用速度控制模式移动无人机
+
+        Args:
+            direction (np.array): 移动方向向量 [dx, dy]
+            velocity (float): 移动速度
+            duration (float): 持续时间
+        """
+        vx = direction[0] * velocity
+        vy = direction[1] * velocity
+
+        self.get_control_client().moveByVelocityAsync(
+            vx, vy, 0,  # 保持当前高度
+            duration,
+            vehicle_name=self.get_name()
+        ).join()
+
+    def rotate_camera2(self, target_pitch, speed=0.05):
+        """
+        平滑旋转摄像头
+
+        参数:
+        - target_pitch: 目标俯仰角度变化量，单位：弧度
+            正值：向上旋转
+            负值：向下旋转
+        - speed: 旋转速度，默认0.05弧度/步
+        """
+        # 计算目标俯仰角度
+        target_camera_pitch = self.get_camera_rotation() + target_pitch
+
+        # 限制目标角度在允许范围内
+        target_camera_pitch = min(0, max(-math.pi / 2, target_camera_pitch))
+
+        # 根据旋转方向决定步进值
+        step = speed if target_pitch > 0 else -speed
+
+        # 逐步旋转到目标角度
+        while abs(self.get_camera_rotation() - target_camera_pitch) > abs(step):
+            # 更新当前角度
+            self.set_camera_rotate(self.get_camera_rotation() + step)
+
+            # 创建新的摄像头姿态
+            camera_pose = airsim.Pose(
+                airsim.Vector3r(0, 0, 0),
+                airsim.to_quaternion(self.get_camera_rotation(), 0, 0)
+            )
+
+            # 更新摄像头姿态
+            self.get_control_client().simSetCameraPose(0, camera_pose, vehicle_name=self.get_name())
+
+            # 添加小延时使运动更平滑
+            time.sleep(0.01)  # 10毫秒延时
+
+        # 最后设置到精确的目标角度
+        self.set_camera_rotate(target_camera_pitch)
+        final_pose = airsim.Pose(
+            airsim.Vector3r(0, 0, 0),
+            airsim.to_quaternion(self.get_camera_rotation(), 0, 0)
+        )
+        self.get_control_client().simSetCameraPose(0, final_pose, vehicle_name=self.get_name())
+
+    # 根据锚框的坐标，计算下一步无人机的移动方
+    def get_moving_vector(self, bbox):
+        """
+        计算无人机下一步移动的方向向量
+        Args:
+            bbox: 目标框 [x1, y1, x2, y2]
+            droneController: 无人机控制器对象
+        Returns:
+            direction: 移动方向向量 [dx, dy]
+        """
+        # 1. 计算目标在图像中的中心点
+        center_u = (bbox[0] + bbox[2]) / 2
+        center_v = (bbox[1] + bbox[3]) / 2
+
+        # 2. 计算相机参数
+        ratio_width, ratio_height = self.get_resolution_ratio()
+        half_FOV_rad = (self.get_FOV_degree() / 2) * (math.pi / 180)
+        distance_to_plane = (ratio_width / 2) / math.tan(half_FOV_rad)
+
+        # 3. 计算目标相对于图像中心的偏移
+        u_offset = center_u - (ratio_width / 2)
+        v_offset = center_v - (ratio_height / 2)
+
+        # 4. 计算相机坐标系下的方向向量
+        object_vector = np.array([
+            [1],  # front
+            [u_offset / distance_to_plane],  # right
+            [v_offset / distance_to_plane]  # down
+        ])
+
+        # 5. 计算旋转矩阵
+        pitch, roll, yaw = self.get_body_eularian_angle()
+        rotation_matrix = get_rotation_matrix(pitch, roll, yaw)
+
+        # 6. 转换到全局坐标系
+        global_vector = np.matmul(rotation_matrix, object_vector)
+
+        # 7. 提取x-y平面的方向向量并归一化
+        direction = np.array([global_vector[0, 0], global_vector[1, 0]])
+        norm = np.linalg.norm(direction)
+        if norm > 0:
+            direction = direction / norm
+
+        return direction
