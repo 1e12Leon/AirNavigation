@@ -1,3 +1,5 @@
+from time import sleep
+
 from utils.qtpage_1 import *
 import os
 
@@ -17,8 +19,7 @@ def create_dirs():
 
 if __name__ == '__main__':
     create_dirs()
-    fps = 500            # 视频帧率
-
+    fps = 50            # 视频帧率
     # PyQt界面初始化
     app = QApplication(sys.argv)
     main_window = MainWindow(fps = fps)

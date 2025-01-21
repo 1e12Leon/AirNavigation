@@ -489,7 +489,7 @@ class MainWindow(QWidget):
         # 继续连接无人机的操作...
         # 连接无人机
         self.fpv_uav.set_default_work_mode('normal')
-        self.fpv_uav.set_instruction_duration(1. / self.fps)
+        self.fpv_uav.set_instruction_duration(0.1)
         self.fpv_uav.connect()
         self.fpv_uav.start()
         self.fpv_uav.take_off_async()
@@ -965,7 +965,7 @@ class MainWindow(QWidget):
 
             # if self.fpv_uav.get_work_mode() == "normal" and vz < 0:
             #     vz = 10 * vz
-            self.fpv_uav.move_by_velocity_with_same_direction_async(v_front, v_right, vz, 1. / self.fps, yaw_mode)
+            self.fpv_uav.move_by_velocity_with_same_direction_async(v_front, v_right, vz, 0.2, yaw_mode)
 
     # # 键盘控制函数
     # def keyboard_control(self):
