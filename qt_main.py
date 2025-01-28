@@ -1,7 +1,10 @@
+from importlib import import_module
 from time import sleep
 
 from utils.qtpage_1 import *
+#from utils.test import *
 import os
+import sys
 
 def create_dirs():
     if not os.path.exists(r"data/capture_imgs"):

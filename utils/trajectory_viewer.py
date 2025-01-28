@@ -22,10 +22,11 @@ class TrajectoryViewer(QWidget):
         
         self.style = """
             QPushButton {
-                background-color: #f0f0f0;
-                border: 1px solid #ccc;
-                border-radius: 4px;
-                padding: 5px;
+                color: rgb(236, 236, 236); /* 文本颜色 */
+                background-color: rgb(47, 47, 47); /* 背景颜色 */
+                border: 1px solid rgb(23, 23, 23); /* 边界颜色 */
+                border-radius: 5px; /* 圆角半径 */
+                padding: 5px 10px; /* 内边距 */
                 margin: 2px;
             }
             QPushButton:hover {
