@@ -19,9 +19,10 @@ matplotlib.pyplot.rcParams['axes.unicode_minus'] = False   # 步骤二（解决�
 class ChangeWeatherWidget(QWidget):
     def __init__(self, weather_controller):
         super(ChangeWeatherWidget, self).__init__()
-        self.setWindowIcon(QtGui.QIcon('data/pics/logo_hhu.png'))
-        self.setWindowTitle("CHANGE WEATHER")
-        self.resize(400, 250)
+        self.setWindowIcon(QtGui.QIcon('utils/hhu.jpg'))
+        self.setStyleSheet("background-color: black; color: white;")
+        self.setWindowTitle("Change weather")
+        self.resize(800, 300)
 
         self.weather_controller = weather_controller
 
@@ -110,9 +111,10 @@ class ChangeWorkModeWidget(QWidget):
 
     def __init__(self, uav):
         super(ChangeWorkModeWidget, self).__init__()
-        self.setWindowIcon(QtGui.QIcon('data/pics/logo_hhu.png'))
-        self.setWindowTitle("CHANGE MODE")
-        self.resize(500, 300)
+        self.setWindowIcon(QtGui.QIcon('utils/hhu.jpg'))
+        self.setStyleSheet("background-color: black; color: white;")
+        self.setWindowTitle("Change mode")
+        self.resize(800, 300)
 
         self.uav = uav
 
@@ -158,8 +160,9 @@ class BotSortInputWidget(QWidget):
         super().__init__()
         self.setWindowTitle("BoT-SORT")
         self.setWindowFlags(Qt.Window | Qt.WindowStaysOnTopHint)  # 窗口置顶
-        self.resize(400, 150)
-        self.setWindowIcon(QtGui.QIcon('data/pics/logo_hhu.png'))
+        self.resize(600, 200)
+        self.setWindowIcon(QtGui.QIcon('utils/hhu.jpg'))
+        self.setStyleSheet("background-color: black; color: white;")
 
         self.offset = None  # 用于实现拖动功能
 
@@ -211,9 +214,10 @@ class ChangeUAVWidget(QWidget):
 
     def __init__(self, uav_list):
         super().__init__()
-        self.setWindowIcon(QtGui.QIcon('data/pics/logo_hhu.png'))
-        self.setWindowTitle("CHANGE DRONE")
-        self.resize(400, 200)
+        self.setWindowIcon(QtGui.QIcon('utils/hhu.jpg'))
+        self.setStyleSheet("background-color: black; color: white;")
+        self.setWindowTitle("Change drone")
+        self.resize(800, 300)
 
         self.uav_list = uav_list
         self.uav = uav_list[0] # 无人机对象
@@ -261,9 +265,10 @@ class ChangeMapWidget(QWidget):
 
     def __init__(self, uav):
         super().__init__()
-        self.setWindowIcon(QtGui.QIcon('data/pics/logo_hhu.png'))
-        self.setWindowTitle("CHANGE MAP")
-        self.resize(400, 200)
+        self.setWindowIcon(QtGui.QIcon('utils/hhu.jpg'))
+        self.setStyleSheet("background-color: black; color: white;")
+        self.setWindowTitle("Change map")
+        self.resize(800, 300)
 
         self.uav = uav[0] # 无人机对象
 
@@ -304,168 +309,3 @@ class ChangeMapWidget(QWidget):
     def cancel(self):
         self.close()
 
-
-# class TrajectoryWindow(QWidget):
-#     def __init__(self, uav):
-#         super().__init__()
-#         self.uav = uav
-#         self.positions = []  # 存储位置数据
-#         self.window_closed = False
-        
-#         # 窗口设置
-#         self.setWindowTitle('UAV Flight Path')
-#         self.resize(800, 600)
-        
-#         # 创建布局
-#         layout = QVBoxLayout()
-        
-#         # 创建matplotlib图形
-#         self.figure = Figure(facecolor='none')
-#         self.canvas = FigureCanvas(self.figure)
-#         layout.addWidget(self.canvas)
-        
-#         # 创建控制按钮
-#         button_layout = QHBoxLayout()
-        
-#         # 开始/暂停按钮
-#         self.start_pause_button = QPushButton('PAUSE', self)
-#         self.start_pause_button.clicked.connect(self.toggle_tracking)
-#         button_layout.addWidget(self.start_pause_button)
-        
-#         # 清除轨迹按钮
-#         clear_button = QPushButton('CLEAR', self)
-#         clear_button.clicked.connect(self.clear_trajectory)
-#         button_layout.addWidget(clear_button)
-        
-#         # 保存图像按钮
-#         save_button = QPushButton('SAVE', self)
-#         save_button.clicked.connect(self.save_plot)
-#         button_layout.addWidget(save_button)
-        
-#         layout.addLayout(button_layout)
-#         self.setLayout(layout)
-        
-#         # 初始化图形
-#         self.ax = self.figure.add_subplot(111)
-#         self.ax.grid(True)
-#         self.ax.set_xlabel('X Position (cm)')
-#         self.ax.set_ylabel('Y Position (cm)')
-#         self.ax.set_title('UAV Flight Path')
-        
-#         # 设置初始显示范围
-#         self.ax.set_xlim(-500, 500)
-#         self.ax.set_ylim(-500, 500)
-        
-#         # 创建定时器用于更新轨迹
-#         self.timer = QTimer()
-#         self.timer.timeout.connect(self.update_plot)
-#         self.timer.start(100)  # 每100ms更新一次
-        
-#         self.tracking = True  # 轨迹记录状态
-#         self.last_pos = None  # 存储上一个位置用于绘制箭头
-
-#     def update_plot(self):
-#         if not self.tracking:
-#             return
-            
-#         try:
-#             # 获取当前位置（单位：厘米）
-#             x, y, _ = self.uav.get_body_position()
-            
-#             current_pos = (x, y)
-#             self.positions.append(current_pos)
-            
-#             # 清除之前的绘图
-#             self.ax.clear()
-            
-#             # 绘制轨迹线
-#             if len(self.positions) > 1:
-#                 positions_array = np.array(self.positions)
-#                 self.ax.plot(positions_array[:, 0], positions_array[:, 1], 'b-', linewidth=1)
-            
-#             # 绘制当前位置点
-#             self.ax.plot(x, y, 'ro', markersize=6)
-            
-#             # 绘制方向箭头
-#             if self.last_pos is not None:
-#                 dx = x - self.last_pos[0]
-#                 dy = y - self.last_pos[1]
-#                 if abs(dx) > 0.05 or abs(dy) > 0.05:  # 只在移动足够距离时绘制箭头
-#                     arrow_length = np.sqrt(dx**2 + dy**2)
-#                     arrow_dx = dx * 20 / arrow_length  # 标准化箭头长度
-#                     arrow_dy = dy * 20 / arrow_length
-#                     self.ax.arrow(x-arrow_dx, y-arrow_dy, arrow_dx, arrow_dy,
-#                                 head_width=6, head_length=6, fc='r', ec='r')
-            
-#             self.last_pos = current_pos
-            
-#             # 检查是否需要调整显示范围
-#             self._adjust_plot_limits()
-            
-#             # 设置网格和标签
-#             self.ax.grid(True)
-#             self.ax.set_xlabel('X Position (cm)')
-#             self.ax.set_ylabel('Y Position (cm)')
-#             self.ax.set_title('UAV Flight Path')
-            
-#             # 更新画布
-#             self.canvas.draw()
-            
-#         except Exception as e:
-#             print(f"Error updating plot: {e}")
-
-#     def _adjust_plot_limits(self):
-#         """调整图的显示范围，确保所有轨迹点可见"""
-#         if not self.positions:
-#             return
-            
-#         positions_array = np.array(self.positions)
-#         x_min, x_max = positions_array[:, 0].min(), positions_array[:, 0].max()
-#         y_min, y_max = positions_array[:, 1].min(), positions_array[:, 1].max()
-        
-#         # 添加边距
-#         margin = 100  # 米
-#         current_xlim = self.ax.get_xlim()
-#         current_ylim = self.ax.get_ylim()
-        
-#         new_xlim = [
-#             min(current_xlim[0], x_min - margin),
-#             max(current_xlim[1], x_max + margin)
-#         ]
-#         new_ylim = [
-#             min(current_ylim[0], y_min - margin),
-#             max(current_ylim[1], y_max + margin)
-#         ]
-        
-#         self.ax.set_xlim(new_xlim)
-#         self.ax.set_ylim(new_ylim)
-
-#     def toggle_tracking(self):
-#         """切换轨迹记录状态"""
-#         self.tracking = not self.tracking
-#         self.start_pause_button.setText('Pause' if self.tracking else 'Resume')
-
-#     def clear_trajectory(self):
-#         """清除轨迹"""
-#         self.positions = []
-#         self.last_pos = None
-#         self.ax.clear()
-#         self.ax.grid(True)
-#         self.ax.set_xlabel('X Position (cm)')
-#         self.ax.set_ylabel('Y Position (cm)')
-#         self.ax.set_title('UAV Flight Path')
-#         self.ax.set_xlim(-500, 500)
-#         self.ax.set_ylim(-500, 500)
-#         self.canvas.draw()
-
-#     def save_plot(self):
-#         """保存轨迹图"""
-#         filename = f"trajectory_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
-#         self.figure.savefig(f"data/trajectory_images/{filename}")
-#         QMessageBox.information(self, "Success", f"Trajectory saved as {filename}")
-
-#     def closeEvent(self, event):
-#         """窗口关闭时停止定时器"""
-#         self.timer.stop()
-#         self.window_closed = True
-#         event.accept()

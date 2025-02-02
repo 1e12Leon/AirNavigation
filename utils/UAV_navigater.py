@@ -96,7 +96,7 @@ class Navigator(UAVController):
         self.__last_recovery_attempt = 0        # 
         self.__recovery_cooldown = 2.0          # 恢复冷却时间
 
-        self.__pred = Predictor(engine_path=r"E:\UAV_temp_staging\demo_code\python\data\models\best_epoch_weights_Brushify.pth")  # 预测器
+        self.__pred = Predictor(engine_path=r"data/models/best_epoch_weights_Brushify.pth")  # 预测器
         self.__pred.inference(np.array([[[0, 0, 0]]], dtype=np.float64), conf=0.1,
                               end2end=False)
         self.__pred.get_fps()

@@ -1,0 +1,140 @@
+{
+    "SeeDocsAt": "https://github.com/Microsoft/AirSim/blob/main/docs/settings.md",
+    "SettingsVersion": 1.2,
+    "SimMode": "Multirotor",
+    "ViewMode": "NoDisplay",
+    "PawnPaths": {
+        "Default": {
+            "PawnBP": "Class'/Game/Blueprints/BP_FlyingPawn.BP_FlyingPawn_C'"
+        },
+        "Matrice200": {
+            "PawnBP": "Class'/Game/Blueprints/Matrice200_FlyingPawn.Matrice200_FlyingPawn_C'"
+        },
+        "sampleflyer": {
+            "PawnBP": "Class'/Game/Blueprints/sample_FlyingPawn.sample_FlyingPawn_C'"
+        }
+    },
+    "CameraDefaults": {
+        "CaptureSettings": [
+            {
+                "ImageType": 0,
+                "Width": 752,
+                "Height": 480,
+                "FOV_Degrees": 90
+            },
+            {
+                "ImageType": 1,
+                "Width": 752,
+                "Height": 480,
+                "FOV_Degrees": 90
+            },
+            {
+                "ImageType": 2,
+                "Width": 752,
+                "Height": 480,
+                "FOV_Degrees": 90
+            },
+            {
+                "ImageType": 3,
+                "Width": 752,
+                "Height": 480,
+                "FOV_Degrees": 90
+            },
+            {
+                "ImageType": 4,
+                "Width": 752,
+                "Height": 480,
+                "FOV_Degrees": 90
+            },
+            {
+                "ImageType": 5,
+                "Width": 752,
+                "Height": 480,
+                "FOV_Degrees": 90
+            },
+            {
+                "ImageType": 6,
+                "Width": 752,
+                "Height": 480,
+                "FOV_Degrees": 90
+            },
+            {
+                "ImageType": 7,
+                "Width": 752,
+                "Height": 480,
+                "FOV_Degrees": 90
+            }
+        ]
+    },
+    "SubWindows": [
+        {
+            "WindowID": 0,
+            "CameraName": "front_center",
+            "ImageType": 0,
+            "Visible": false,
+            "ImageSize": [
+                480,
+                270
+            ],
+            "CameraPosition": [
+                0.0,
+                0.0,
+                -2.5
+            ],
+            "CameraRotation": [
+                0.0,
+                0.0,
+                0.0
+            ]
+        },
+        {
+            "WindowID": 1,
+            "CameraName": "front_center",
+            "ImageType": 3,
+            "Visible": false,
+            "ImageSize": [
+                480,
+                270
+            ],
+            "CameraPosition": [
+                0.0,
+                0.0,
+                -2.5
+            ],
+            "CameraRotation": [
+                0.0,
+                0.0,
+                0.0
+            ]
+        },
+        {
+            "WindowID": 2,
+            "CameraName": "front_center",
+            "ImageType": 5,
+            "Visible": false,
+            "ImageSize": [
+                480,
+                270
+            ],
+            "CameraPosition": [
+                0.0,
+                0.0,
+                -2.5
+            ],
+            "CameraRotation": [
+                0.0,
+                0.0,
+                0.0
+            ]
+        }
+    ],
+    "Vehicles": {
+        "Default": {
+            "PawnPath": "Default",
+            "VehicleType": "SimpleFlight",
+            "X": 0,
+            "Y": 0,
+            "Z": 0
+        }
+    }
+}

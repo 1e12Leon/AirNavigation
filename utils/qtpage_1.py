@@ -1,10 +1,10 @@
 
 import datetime
 
-from PyQt5.QtCore import QEvent
+from PyQt5.QtCore import QEvent, QThread, QMetaObject, Q_ARG
 from PyQt5.QtGui import QIcon
 
-
+from use_cmd import CommandWorker
 from utils.button_style import get_button_style
 from utils.trajectory_viewer import TrajectoryViewer
 from utils.weather_controller import WeatherController
@@ -12,7 +12,7 @@ from utils.widgets import *
 from utils.utils import close_UE,wait_for_ue_startup,create_directory_if_not_exists
 import subprocess
 
-from utils.dialogs import LoadingDialog
+from utils.dialogs import LoadingDialog, HelpWindow
 from utils.threads import EvaluationThread,MonitoringThread
 
 # 根据当前键盘中控制无人机方向的按键计算无人机飞行速度
@@ -49,9 +49,9 @@ class MainWindow(QWidget):
         super().__init__()
         # self.setWindowTitle('Unreal Engine-based drone guidance algorithm simulates the control end of the system')
         self.setWindowTitle('AirNavigation')
-        self.setWindowIcon(QIcon(r'E:\UAV_temp_staging\demo_code\python\utils\hhu.jpg'))
+        self.setWindowIcon(QIcon('utils/hhu.jpg'))
 
-        self.resize(1920, 1080)
+        self.resize(2600, 1200)
 
         self.fpv_uav = UAV()          # 无人机
         self.pressed_keys = []        # 存储当前按下的按键
@@ -78,6 +78,7 @@ class MainWindow(QWidget):
         self.btn_export_targets = None
         self.btn_record_state = None
         self.btn_toggle_monitoring = None
+        self.btn_instructions = None
 
         self.label_status = None
         self.label_image = None
@@ -99,16 +100,71 @@ class MainWindow(QWidget):
         self.left_panel = None
         self.right_panel = None
         # 初始化 changeWidth 属性
-        self.changeWidth = 200  # 侧边栏宽度变化量
+        self.changeWidth = 500  # 侧边栏宽度变化量
         self.left_unfold = True  # 标记当前侧边栏是否展开
         self.right_unfold = True
         # 初始化 changeWidth 属性
-        self.left_panel_initial_width = 200  # 左侧面板初始宽度
-        self.right_panel_initial_width = 500  # 左侧面板初始宽度
+        self.left_panel_initial_width = 280  # 左侧面板初始宽度
+        self.right_panel_initial_width = 600  # 右侧面板初始宽度
+        self.command_thread = None
+        self.command_worker = None
+        self.console_output = None
+        self.cmd_input = None
 
         self.set_ui()  # 初始化界面
         QApplication.instance().installEventFilter(self)  # 安装事件过滤器
+        self._init_command_system()
 
+    def _init_command_system(self):
+        """初始化命令处理系统"""
+        # 创建线程和工作器
+        self.command_thread = QThread()
+        # 在这里填入api
+        self.command_worker = CommandWorker(
+            f"{here_to_input_your_api}"
+        )
+
+        # 连接信号（确保在主线程连接）
+        self.command_worker.output_received.connect(self.update_console)
+        self.command_worker.finished.connect(self.close)
+
+        # 移动工作器到线程（关键步骤）
+        self.command_worker.moveToThread(self.command_thread)
+
+        # 启动线程后初始化
+        def start_initialization():
+            QMetaObject.invokeMethod(
+                self.command_worker,
+                'initialize',
+                Qt.QueuedConnection
+            )
+
+        self.command_thread.started.connect(start_initialization)  # <-- 修正初始化时机
+        self.command_thread.start()
+        # 验证对象线程归属
+        print("Worker thread:", self.command_worker.thread())
+        print("Command thread:", self.command_thread)
+
+    def execute_command(self):
+        """执行用户输入的命令"""
+        cmd = self.cmd_input.text().strip()
+        self.cmd_input.clear()
+
+        if cmd:
+            # 使用正确的参数类型声明
+            QMetaObject.invokeMethod(
+                self.command_worker,
+                'process_command',
+                Qt.QueuedConnection,
+                Q_ARG(str, cmd)  # 明确指定参数类型
+            )
+
+    def update_console(self, text):
+        """更新控制台显示"""
+        current_thread = QThread.currentThread().objectName() or "MainThread"
+        debug_info = f"{text}"
+        self.console_output.append(debug_info)
+        self.console_output.ensureCursorVisible()  # 自动滚动到底部
 
     def set_ui(self):
         """
@@ -117,12 +173,15 @@ class MainWindow(QWidget):
         # 创建主布局
         main_layout = QHBoxLayout()
 
+        main_layout.setContentsMargins(0, 0, 0, 0)  # 移除边距
+        main_layout.setSpacing(0)  # 移除间距
+
         self._create_left_slide(main_layout)
         # 左侧控制面板
         self.left_panel = self._create_left_control_panel()
-        main_layout.addWidget(self.left_panel)
+        main_layout.addWidget(self.left_panel, stretch=1)
 
-        # 右右
+        # medium
 
         medium_panel = self._create_medium_panel()
         main_layout.addWidget(medium_panel, stretch=2)
@@ -158,6 +217,7 @@ class MainWindow(QWidget):
 
         # 添加展开和收起按钮
         self.left_showOrHideBtn = QPushButton('>', self)
+        self.left_showOrHideBtn.setFocusPolicy(Qt.NoFocus)
         self.left_showOrHideBtn.setFixedSize(40, 80)  # 调整按钮大小
         self.left_showOrHideBtn.setStyleSheet("border:none; background-color: transparent;")
         self.left_showOrHideBtn.setCursor(Qt.PointingHandCursor)
@@ -178,25 +238,32 @@ class MainWindow(QWidget):
         layout = QVBoxLayout()
 
         # 添加控制按钮组
-        button_group = QGroupBox("Control Panel")
+        button_group = QGroupBox("Control panel")
         button_layout = QVBoxLayout()
-        button_layout.setSpacing(40)
+        button_layout.setSpacing(30)
+        button_group.setStyleSheet("""
+        QGroupBox {
+                font-weight: bold;
+                border: 1px solid rgb(23, 23, 23); /* 边界颜色 */
+                border-radius: 5px;
+                margin-top: 2px;
+                padding: 25px 0px 20px 20px;
+                background-color: rgb(33, 33, 33); /* 背景颜色 */
+                color: rgb(236, 236, 236); /* 文本颜色 */
+            }""")
+
 
         # 连接按钮
-        self.btn_connect = self._create_button("CONNECT", self.connect)
-        button_layout.addWidget(self.btn_connect)
+        self.btn_connect = self._create_button("Connect", self.connect)
 
         # 拍照按钮
-        self.btn_capture = self._create_button("TAKE PHOTO", self.capture, enabled=False)
-        button_layout.addWidget(self.btn_capture)
+        self.btn_capture = self._create_button("Take\nphoto", self.capture, enabled=False)
 
         # 录像按钮
-        self.btn_record_video = self._create_button("START RECORDING", self.record_video, enabled=False)
-        button_layout.addWidget(self.btn_record_video)
+        self.btn_record_video = self._create_button("Start\nrecording", self.record_video, enabled=False)
 
         # 工作模式按钮
-        self.btn_change_work_mode = self._create_button("SWITCH MODE", self.change_work_mode, enabled=False)
-        button_layout.addWidget(self.btn_change_work_mode)
+        self.btn_change_work_mode = self._create_button("Switch\nmode", self.change_work_mode, enabled=False)
 
         # BoT-SORT 输入框
         self.text_input_botsort = QLineEdit(self)
@@ -206,15 +273,21 @@ class MainWindow(QWidget):
         button_layout.addWidget(self.text_input_botsort)
 
         # 其他功能按钮
-        self.btn_change_weather = self._create_button("CHANGE WEATHER", self.change_weather, enabled=False)
-        self.btn_change_uav = self._create_button("CHANGE DRONE", self.change_uav, enabled=False)
-        self.btn_change_map = self._create_button("CHANGE MAP", self.change_map, enabled=False)
-        self.btn_record_state = self._create_button("RECORD STATUS", self.record_state, enabled=False)
-        self.btn_export_targets = self._create_button("EXPORT TARGET", self.export_targets, enabled=False)
+        self.btn_change_weather = self._create_button("Change\nweather", self.change_weather, enabled=False)
+        self.btn_change_uav = self._create_button("Change\ndrone", self.change_uav, enabled=False)
+        self.btn_change_map = self._create_button("Change\nmap", self.change_map, enabled=False)
+        self.btn_record_state = self._create_button("Record\nstatus", self.record_state, enabled=False)
+        self.btn_export_targets = self._create_button("Export\ntarget", self.export_targets, enabled=False)
+        self.btn_toggle_monitoring = self._create_button("Start\nmonitoring", self.toggle_monitoring, enabled=False)
 
-        for btn in [self.btn_change_weather, self.btn_change_uav, self.btn_change_map,
-                    self.btn_record_state, self.btn_export_targets]:
+
+
+        for btn in [self.btn_connect, self.btn_change_weather, self.btn_change_uav, self.btn_change_map,
+                    self.btn_change_work_mode, self.btn_record_state, self.btn_record_video,
+                    self.btn_capture, self.btn_toggle_monitoring, self.btn_export_targets]:
+            btn.setFixedSize(160, 80)
             button_layout.addWidget(btn)
+            btn.setFocusPolicy(Qt.NoFocus)
 
         button_group.setLayout(button_layout)
         layout.addWidget(button_group)
@@ -247,14 +320,15 @@ class MainWindow(QWidget):
         # 按钮区域
         button_layout = QHBoxLayout()
 
-        # self.btn_toggle_monitoring = QPushButton("START MONITORING")
-        self.btn_toggle_monitoring = QPushButton("Instructions")
-        self.btn_toggle_monitoring.clicked.connect(self.toggle_monitoring)
-        self.btn_toggle_monitoring.setFocusPolicy(Qt.NoFocus)  # 禁用键盘焦点
-        button_layout.addWidget(self.btn_toggle_monitoring)
-        self.btn_toggle_monitoring.setEnabled(False)
+
+        self.btn_instructions = QPushButton("Instructions")
+        self.btn_instructions.setFocusPolicy(Qt.NoFocus)
+        self.btn_instructions.clicked.connect(self.show_instructions)
+        self.btn_instructions.setFocusPolicy(Qt.NoFocus)  # 禁用键盘焦点
+        button_layout.addWidget(self.btn_instructions)
 
         self.clear_button = QPushButton("Clear")
+        self.clear_button.setFocusPolicy(Qt.NoFocus)
         self.clear_button.clicked.connect(self.clear_status_text)
         self.clear_button.setFocusPolicy(Qt.NoFocus)
         button_layout.addWidget(self.clear_button)
@@ -277,6 +351,11 @@ class MainWindow(QWidget):
 
         return frame
 
+    def show_instructions(self):
+        """显示帮助窗口"""
+        help_window = HelpWindow(self)  # 创建帮助窗口
+        help_window.exec_()  # 以模态方式显示窗口
+
     def update_status_text(self, new_text):
         self.text_edit_status.append(new_text)
 
@@ -287,7 +366,7 @@ class MainWindow(QWidget):
         if self.monitoring_flag:
             # 停止监控
             self.monitoring_flag = False
-            self.btn_toggle_monitoring.setText("START MONITORING")
+            self.btn_toggle_monitoring.setText("Start\nmonitoring")
             if self.monitoring_thread:
                 self.monitoring_thread.stop()
                 self.monitoring_thread.wait()
@@ -295,7 +374,7 @@ class MainWindow(QWidget):
         else:
             # 开始监控
             self.monitoring_flag = True
-            self.btn_toggle_monitoring.setText("STOP MONITORING")
+            self.btn_toggle_monitoring.setText("Stop\nmonitoring")
 
             # 创建并启动监控线程
             self.monitoring_thread = MonitoringThread(self.fpv_uav)
@@ -331,19 +410,23 @@ class MainWindow(QWidget):
 
         central_frame.setLayout(layout)
 
-        # 输入
-        status_group = QGroupBox("Input")
-        status_layout = QVBoxLayout()
+        # 输入输出控制台
+        console_group = QGroupBox("Cmd")
+        console_layout = QVBoxLayout()
 
-        # 使用QTextEdit替换QLabel
-        self.input_text = QTextEdit()
-        self.input_text.setObjectName("statusTextEdit")
-        #self.input_text.setReadOnly(True)  # 设置为只读模式，防止用户编辑
-        self.input_text.setFocusPolicy(Qt.NoFocus)  # 禁用键盘焦点
-        status_layout.addWidget(self.input_text)
+        # 输出显示
+        self.console_output = QTextEdit()
+        self.console_output.setReadOnly(True)
+        console_layout.addWidget(self.console_output)
 
-        status_group.setLayout(status_layout)
-        layout.addWidget(status_group)
+        # 输入框
+        self.cmd_input = QLineEdit()
+        self.cmd_input.setPlaceholderText("Here to enter your command")
+        self.cmd_input.returnPressed.connect(self.execute_command)
+        console_layout.addWidget(self.cmd_input)
+
+        console_group.setLayout(console_layout)
+        layout.addWidget(console_group)
 
         return central_frame
 
@@ -356,17 +439,20 @@ class MainWindow(QWidget):
         frame.setMaximumWidth(self.right_panel_initial_width)
 
         # 状态信息区域
-        status_group = QGroupBox("STATUS INFORMATION")
+        status_group = QGroupBox("Status information")
         status_group.setMaximumHeight(200)
         status_layout = QVBoxLayout()
         self.label_status = QLabel("\n")
         self.label_status.setObjectName("statusLabel")
+        self.label_status.setText("waiting")
+        self.label_status.setFixedWidth(600)
+        self.label_status.setFixedHeight(300)
         status_layout.addWidget(self.label_status)
         status_group.setLayout(status_layout)
         layout.addWidget(status_group)
 
         # 轨迹显示区域
-        trajectory_group = QGroupBox("REAL-TIME TRAJECTORY")
+        trajectory_group = QGroupBox("Real-time trajectory")
         trajectory_layout = QVBoxLayout()
 
         # 使用新的轨迹查看器
@@ -386,6 +472,7 @@ class MainWindow(QWidget):
 
         # 添加展开和收起按钮
         self.right_showOrHideBtn = QPushButton('<', self)
+        self.right_showOrHideBtn.setFocusPolicy(Qt.NoFocus)
         self.right_showOrHideBtn.setFixedSize(40, 80)  # 调整按钮大小
         self.right_showOrHideBtn.setStyleSheet("border:none; background-color: transparent; ")
         self.right_showOrHideBtn.setCursor(Qt.PointingHandCursor)
@@ -408,44 +495,45 @@ class MainWindow(QWidget):
             self.adjustSize(self.right_panel_initial_width)  # 调整窗口大小
             self.right_unfold = True
 
-    def _create_bottom_bar(self):
-        """创建底部状态栏"""
-        bottom_frame = QFrame()
-        bottom_frame.setObjectName("bottomBar")
-
-        layout = QHBoxLayout()
-
-        # 键盘控制说明
-        help_text = ("Keyboard control instructions:"\
-        "W, S, A, D to control forward, backward, left, and right movement;"\
-        "↑, ↓ to control ascent and descent;"\
-        "←, → to control left and right rotation;"\
-        "Q, E to control camera rotation;\n"\
-        "N key to switch to 'Normal' mode;"\
-        "Y key to switch to 'Target Detection' mode;"\
-        "T key to switch to 'Autonomous Guidance' mode;"\
-        "B key to switch to 'Target Tracking' mode;\n"\
-        "C key to take a photo;"\
-        "R key to record a video;"\
-        "F key to log flight status.")
-        help_label = QLabel(help_text)
-        help_label.setObjectName("helpLabel")
-        layout.addWidget(help_label)
-
-        # 添加项目简介和声明按钮
-        info_layout = QHBoxLayout()
-        self.btn_project_introduce = self._create_button("PROJECT INTRODUCTION", self.project_introduce,style_type=False)
-        self.btn_project_introduce.setFixedSize(180, 40)  # 设置固定大小，宽100，高30
-
-        self.btn_statement = self._create_button("STATEMENT", self.statement, style_type=False)
-        self.btn_statement.setFixedSize(130, 40)  # 设置固定大小，宽100，高30
-
-        info_layout.addWidget(self.btn_project_introduce)
-        info_layout.addWidget(self.btn_statement)
-        layout.addLayout(info_layout)
-
-        bottom_frame.setLayout(layout)
-        return bottom_frame
+    # def _create_bottom_bar(self):
+    #     """创建底部状态栏"""
+    #     bottom_frame = QFrame()
+    #     bottom_frame.setObjectName("bottomBar")
+    #
+    #     layout = QHBoxLayout()
+    #
+    #     # 键盘控制说明
+    #     help_text = ("Keyboard control instructions:"\
+    #     "W, S, A, D to control forward, backward, left, and right movement;"\
+    #     "↑, ↓ to control ascent and descent;"\
+    #     "←, → to control left and right rotation;"\
+    #     "Q, E to control camera rotation;\n"\
+    #     "N key to switch to 'Normal' mode;"\
+    #     "Y key to switch to 'Target Detection' mode;"\
+    #     "T key to switch to 'Autonomous Guidance' mode;"\
+    #     "B key to switch to 'Target Tracking' mode;\n"\
+    #     "C key to take a photo;"\
+    #     "R key to record a video;"\
+    #     "F key to log flight status."\
+    #                  "")
+    #     help_label = QLabel(help_text)
+    #     help_label.setObjectName("helpLabel")
+    #     layout.addWidget(help_label)
+    #
+    #     # 添加项目简介和声明按钮
+    #     info_layout = QHBoxLayout()
+    #     self.btn_project_introduce = self._create_button("PROJECT INTRODUCTION", self.project_introduce,style_type=False)
+    #     self.btn_project_introduce.setFixedSize(180, 40)  # 设置固定大小，宽100，高30
+    #
+    #     self.btn_statement = self._create_button("STATEMENT", self.statement, style_type=False)
+    #     self.btn_statement.setFixedSize(130, 40)  # 设置固定大小，宽100，高30
+    #
+    #     info_layout.addWidget(self.btn_project_introduce)
+    #     info_layout.addWidget(self.btn_statement)
+    #     layout.addLayout(info_layout)
+    #
+    #     bottom_frame.setLayout(layout)
+    #     return bottom_frame
 
     def _create_button(self, text, callback, enabled=True, style_type='default', size=None, outline=False):
         """
@@ -477,9 +565,9 @@ class MainWindow(QWidget):
             }
 
             #leftPanel {
-                max-width: 200px;
+                max-width: 280px;
                 background-color: rgb(33, 33, 33); /* 背景颜色 */
-                padding: 10px;
+                padding: 0px;
                 color: rgb(236, 236, 236); /* 文本颜色 */
                 border: 1px solid rgb(23, 23, 23); /* 边界颜色 */
             }
@@ -492,8 +580,8 @@ class MainWindow(QWidget):
             }
 
             #rightPanel {
-                min-width: 300px;
-                max-width: 400px;
+                min-width: 400px;
+                max-width: 600px;
                 background-color: rgb(33, 33, 33); /* 背景颜色 */
                 padding: 10px;
                 color: rgb(236, 236, 236); /* 文本颜色 */
@@ -515,7 +603,7 @@ class MainWindow(QWidget):
 
             #statusLabel {
                 background-color: rgb(33, 33, 33); /* 背景颜色 */
-                padding: 10px;
+                padding: 0px, 150px, 0px, 0px;
                 border-radius: 5px;
                 border: 1px solid rgb(23, 23, 23); /* 边界颜色 */
                 color: rgb(236, 236, 236); /* 文本颜色 */
@@ -564,6 +652,43 @@ class MainWindow(QWidget):
                 border-radius: 4px;
                 background-color: rgb(23, 23, 23); /* 背景颜色 */
                 color: rgb(236, 236, 236); /* 文本颜色 */
+            }
+            
+            /* 滚动条的整体样式 */
+            QScrollBar:vertical {
+                border: none;
+                background: rgb(30, 30, 30); /* 滚动条背景颜色 */
+                width: 5px; /* 滚动条宽度 */
+                margin: 2px 2px 2px 2px;
+                border-radius: 5px;
+            }
+            
+            /* 滚动条上的滑块 */
+            QScrollBar::handle:vertical {
+                background: rgb(80, 80, 80); /* 滑块颜色 */
+                min-height: 20px; /* 滑块最小高度 */
+                border-radius: 5px;
+            }
+            
+            QScrollBar::handle:vertical:hover {
+                background: rgb(120, 120, 120); /* 鼠标悬停时滑块颜色 */
+            }
+            
+            QScrollBar::handle:vertical:pressed {
+                background: rgb(150, 150, 150); /* 鼠标按下时滑块颜色 */
+            }
+            
+            /* 上下箭头隐藏 */
+            QScrollBar::sub-line:vertical, 
+            QScrollBar::add-line:vertical {
+                background: none;
+                border: none;
+            }
+            
+            /* 轨道背景 */
+            QScrollBar::sub-page:vertical, 
+            QScrollBar::add-page:vertical {
+                background: rgb(40, 40, 40); /* 轨道颜色 */
             }
             
             QPushButton {
@@ -728,7 +853,7 @@ class MainWindow(QWidget):
             self.rec.release()
             print("Successful rec!")
             self.rec = None
-            self.btn_record_video.setText("START RECORDING")
+            self.btn_record_video.setText("Start\nrecording")
 
     # # 录像函数, 实现多模态录像
     # def record_video(self):
@@ -848,7 +973,7 @@ class MainWindow(QWidget):
     def record_state(self):
         if self.record_state_flag:
             self.record_state_flag = False
-            self.btn_record_state.setText("RECORD STATUS")
+            self.btn_record_state.setText("Record\nstatus")
             log_data = self.fpv_uav.stop_logging()
 
             # 主线程中更新初始状态
@@ -890,12 +1015,10 @@ class MainWindow(QWidget):
         msgbox.show()
 
     def statement(self):
+
         msgbox = QMessageBox(QMessageBox.Information,
                             "Copyright Statement\n"
-                            "Project Source:\n"
-                            "2023 Global Campus Artificial Intelligence Algorithm Elite Competition\n"
-                            "Author: Shengxiang Xu\n"
-                            "Contact: 3206895195@qq.com\n",
+                            "Project Source:\n",
                              QMessageBox.Ok, self)
         msgbox.show()
 
@@ -923,10 +1046,10 @@ class MainWindow(QWidget):
         else:
             latest_target_location = "(-, -, -)"
 
-        self.label_status.setText("\tWeather：" + weather + ", " + str(val) +
-                                  "\n\tDrone Work Mode：" + work_mode +
-                                  "\n\tNumber of targets located:" + str(target_nums) +
-                                  "\n\tMost recently located target:" + str(latest_target_location))
+        self.label_status.setText("Weather：" + weather + ", " + str(val) +
+                                  "\nDrone Work Mode：" + work_mode +
+                                  "\nNumber of targets located:" + str(target_nums) +
+                                  "\nrecently located target:" + str(latest_target_location))
 
 
     # 在用户界面上显示无人机画面的函数
@@ -996,6 +1119,10 @@ class MainWindow(QWidget):
 
     # 重写关闭界面触发的事件
     def closeEvent(self, event):
+        """窗口关闭时清理线程"""
+        self.command_thread.quit()
+        self.command_thread.wait()
+        super().closeEvent(event)
         self.stop_all_uav()
 
     # 重写事件过滤器, 捕获正在按下的按键并记录在self.pressed_keys中
@@ -1072,7 +1199,7 @@ class MainWindow(QWidget):
         if is_move:
             velocity_value = self.fpv_uav.get_max_velocity()  # 得到UAV的速率
             v_front, v_right, vz = calculate_velocity(velocity_value, direction_vector)  # 得到无人机每一个方向的速度
-            print(v_front, v_right, vz, 1. / self.fps, yaw_mode)
+            #print(v_front, v_right, vz, 1. / self.fps, yaw_mode)
             # 参数分别表示为：正向速度 右向速度 下向速度 持续时间 是否采用偏航模式
 
             self.fpv_uav.move_by_velocity_with_same_direction_async(v_front, v_right, vz, 0.2, yaw_mode)
