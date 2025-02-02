@@ -7,7 +7,7 @@ class UAV(Navigator):
     def __init__(self):
         super().__init__()
 
-        self.work_list = ['normal', 'detect', 'track', 'botsort', "base"]
+        self.work_list = ['normal', 'detect', 'track', 'botsort']
         self.__default_work_mode = 'normal'  # ['normal', 'detect', 'track'] # 工作模式
         self.__work_mode = None                            # 当前工作模式
         self.__started = False                             # 是否开始UAV

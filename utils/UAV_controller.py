@@ -28,7 +28,7 @@ def velocity_body_frame_to_NED(v_front, v_right, vz, yaw):
 
 class UAVController:
     def __init__(self):
-        self.__airsim_json = r"C:\Users\JiangJianYu\Documents\AirSim\settings.json"
+        self.__airsim_json = r"settings/settings.json"
         self.__uav_name_list = ["Default","Matrice200","sampleflyer"] # 无人机名称列表
         self.__capture_all_image_kinds = ["Scene", "DepthVis","DepthPerspective","DepthPlanar","Segmentation", "SurfaceNormals", "Infrared"] # 捕获所有图像类型
         self.__capture_type = ["Scene"]                     # 目前捕获的图像类型
@@ -359,10 +359,10 @@ class UAVController:
         _, _, yaw = airsim.to_eularian_angles(orientation)
 
         vx_NED, vy_NED, vz_NED = velocity_body_frame_to_NED(v_front, v_right, vz, yaw)
-        print("NED", vx_NED, vy_NED, vz_NED, duration, airsim.DrivetrainType.MaxDegreeOfFreedom, yaw_mode, self.__name)
+        #print("NED", vx_NED, vy_NED, vz_NED, duration, airsim.DrivetrainType.MaxDegreeOfFreedom, yaw_mode, self.__name)
         state = self.__control_client.getMultirotorState(self.__name)
         current_altitude = state.kinematics_estimated.position.z_val
-        print(f"Current altitude: {current_altitude}")
+        #print(f"Current altitude: {current_altitude}")
 
         self.__control_client.moveByVelocityAsync(vx_NED, vy_NED, vz_NED, duration,
                                                   airsim.DrivetrainType.MaxDegreeOfFreedom,

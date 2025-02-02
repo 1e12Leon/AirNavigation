@@ -1,4 +1,5 @@
 import matplotlib
+
 matplotlib.use('Qt5Agg')
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -52,10 +53,10 @@ class TrajectoryViewer(QWidget):
         layout.setSpacing(10)
         
         plot_container = QWidget()
-        plot_container.setFixedWidth(350)
+        plot_container.setFixedWidth(550)
         plot_container.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        plot_container.setMinimumHeight(350)
-        plot_container.setMaximumHeight(350)
+        plot_container.setMinimumHeight(550)
+        plot_container.setMaximumHeight(550)
         
         plot_layout = QVBoxLayout(plot_container)
         plot_layout.setContentsMargins(0, 0, 0, 0)
@@ -78,10 +79,10 @@ class TrajectoryViewer(QWidget):
         button_layout = QVBoxLayout()
         
         view_group = QHBoxLayout()
-        self.btn_3d = QPushButton('3D View')
-        self.btn_xy = QPushButton('XY View')
-        self.btn_xz = QPushButton('XZ View')
-        self.btn_yz = QPushButton('YZ View')
+        self.btn_3d = QPushButton('3D')
+        self.btn_xy = QPushButton('XY')
+        self.btn_xz = QPushButton('XZ')
+        self.btn_yz = QPushButton('YZ')
         
         for btn in [self.btn_3d, self.btn_xy, self.btn_xz, self.btn_yz]:
             btn.setFixedWidth(80)
@@ -95,7 +96,7 @@ class TrajectoryViewer(QWidget):
         self.btn_save = QPushButton('SAVE')
         
         for btn in [self.btn_pause, self.btn_clear, self.btn_save]:
-            btn.setFixedWidth(80)
+            btn.setFixedWidth(100)
             btn.setStyleSheet(self.style)
             btn.setFocusPolicy(Qt.NoFocus)
             control_group.addWidget(btn)
@@ -119,7 +120,10 @@ class TrajectoryViewer(QWidget):
     def setup_plot(self):
         """初始化绘图设置"""
         self.ax.clear()
-        
+        self.ax.xaxis.label.set_color('white')
+        self.ax.yaxis.label.set_color('white')
+        if hasattr(self.ax, 'zaxis'):  # 如果是3D图
+            self.ax.zaxis.label.set_color('white')
         # 设置axes的背景透明
         if hasattr(self.ax, 'w_xaxis'):
             self.ax.w_xaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
@@ -127,7 +131,13 @@ class TrajectoryViewer(QWidget):
             self.ax.w_zaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
         
         is_3d = hasattr(self.ax, 'get_proj')
-        
+
+        # 设置刻度颜色
+        self.ax.tick_params(axis='x', colors='white')
+        self.ax.tick_params(axis='y', colors='white')
+        if hasattr(self.ax, 'zaxis'):  # 如果是3D图
+            self.ax.tick_params(axis='z', colors='white')
+
         if self.current_view == '3D':
             if not is_3d:
                 self.figure.clear()
@@ -158,7 +168,7 @@ class TrajectoryViewer(QWidget):
         self.ax.set_facecolor('none')
         self.figure.patch.set_alpha(0.0)
                 
-        self.ax.set_title(f'UAV Trajecotry - {self.current_view} View')
+        self.ax.set_title(f'UAV Trajecotry - {self.current_view} View', color='white', fontsize=18)
         self.canvas.draw()
 
     def start(self):
@@ -228,7 +238,7 @@ class TrajectoryViewer(QWidget):
                     self.ax.set_xlabel('Y (m)')
                     self.ax.set_ylabel('Z (m)')
             
-            self.ax.set_title(f'UAV Trajecotry - {self.current_view} View')
+            self.ax.set_title(f'UAV Trajecotry - {self.current_view} View', color='white', fontsize=18)
             self.canvas.draw()
             
         except Exception as e:

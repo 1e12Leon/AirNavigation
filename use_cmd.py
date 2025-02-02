@@ -1,7 +1,11 @@
 import argparse
 import ast
+import sys
 import time
 import os
+
+from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot, QThread
+
 from utils.UAV import UAV
 import shlex
 import google.generativeai as genai
@@ -179,49 +183,134 @@ class DroneCommandExecutor:
                 params[arg_name] = arg_value
         return params
 
-if __name__ == '__main__':
-    # 检查并获取 API 密钥
-    api_key = "AIzaSyDFNNDLUzz_wwBFPTs4m0jiV7SWfO5JTAc"
-    if not api_key:
-        print("错误: 请设置 GEMINI_API_KEY 环境变量")
-        exit(1)
 
-    print("无人机命令控制界面已启动")
-    print("\n您可以使用自然语言描述指令，系统会自动转换为标准命令格式。")
+class CommandWorker(QObject):
+    output_received = pyqtSignal(str)
+    finished = pyqtSignal()
 
-    # 初始化命令解析器和执行器
-    command_parser = CommandParser()
-    command_executor = DroneCommandExecutor("C:/Users/HP/Documents/AirSim/settings.json")
-    # 初始化 GeminiDrone 模型
-    gemini_model = GeminiDroneController(api_key)
+    def __init__(self, api_key):
+        super().__init__()
+        self.api_key = api_key
+        self.initialized = False
 
-    while True:
+    @pyqtSlot()  # <-- 添加槽函数装饰器
+    def initialize(self):
+        """初始化核心组件"""
+        if self.initialized:
+            return
+
+        print("线程ID:", QThread.currentThreadId())  # 调试线程信息
         try:
-            # 获取用户输入
-            user_input = input("\033[34mAirNavigation > \033[0m").strip()
+            # 初始化命令系统
+            self.command_parser = CommandParser()
+            self.command_executor = DroneCommandExecutor("settings/settings.json")
+            self.gemini_model = GeminiDroneController(self.api_key)
 
-            if not user_input:
-                continue
+            # 输出初始化信息（通过信号传递）
+            self.output_received.emit("Drone command control interface activated")
+            self.output_received.emit("\nYou can use natural language to describe the instructions, which are automatically converted to standard command format.")
 
-            # 使用 Gemini 转换命令
-            command = gemini_model.convert_to_command(user_input)
-            if command is None:
-                continue
-
-            print(f"转换后的命令: {command}")
-
-            # 解析转换后的命令
-            args = command_parser.parse_command(command)
-            if args is None:
-                continue
-
-            # 执行命令
-            should_exit = command_executor.execute_command(args)
-            if should_exit:
-                print("\n AirNavigation has exited, Welcome your next command.")
-                break
-
-        except KeyboardInterrupt:
-            print("\n收到键盘中断。请输入'exit'以正确结束程序。")
+            self.initialized = True
         except Exception as e:
-            print(f"错误: {e}")
+            self.output_received.emit(f"Initialization failure: {str(e)}")
+
+    @pyqtSlot(str)  # 明确声明参数类型
+    def process_command(self, user_input: str):
+        """处理用户命令（添加参数类型声明）"""
+        if not self.initialized:
+            return
+
+        with OutputCapture(self.output_received.emit):
+            try:
+                command = self.gemini_model.convert_to_command(user_input)
+                if not command:
+                    self.output_received.emit("Command conversion failure")
+                    return
+
+                self.output_received.emit(f"Converted command: {command}")
+
+                args = self.command_parser.parse_command(command)
+                if not args:
+                    self.output_received.emit("Command parsing failure")
+                    return
+
+                if self.command_executor.execute_command(args):
+                    self.output_received.emit("\nThe system exits safely")
+                    self.finished.emit()
+
+            except Exception as e:
+                self.output_received.emit(f"Execution error: {str(e)}")
+
+    @pyqtSlot()
+    def cleanup(self):
+        """线程安全清理"""
+        print("执行清理操作...")
+        self.command_executor.drone.disconnect()
+        self.gemini_model.close()
+
+
+class OutputCapture:
+    """输出捕获器（重定向stdout）"""
+
+    def __init__(self, callback):
+        self.callback = callback
+        self.original_stdout = sys.stdout
+
+    def __enter__(self):
+        sys.stdout = self
+
+    def __exit__(self, *args):
+        sys.stdout = self.original_stdout
+
+    def write(self, text):
+        self.callback(text.strip())
+
+    def flush(self):
+        pass
+
+# if __name__ == '__main__':
+#     # 检查并获取 API 密钥
+#     api_key = ""
+#     if not api_key:
+#         print("错误: 请设置 GEMINI_API_KEY 环境变量")
+#         exit(1)
+#
+#     print("无人机命令控制界面已启动")
+#     print("\n您可以使用自然语言描述指令，系统会自动转换为标准命令格式。")
+#
+#     # 初始化命令解析器和执行器
+#     command_parser = CommandParser()
+#     command_executor = DroneCommandExecutor("settings/settings.json")
+#     # 初始化 GeminiDrone 模型
+#     gemini_model = GeminiDroneController(api_key)
+#
+#     while True:
+#         try:
+#             # 获取用户输入
+#             user_input = input("\033[34mAirNavigation > \033[0m").strip()
+#
+#             if not user_input:
+#                 continue
+#
+#             # 使用 Gemini 转换命令
+#             command = gemini_model.convert_to_command(user_input)
+#             if command is None:
+#                 continue
+#
+#             print(f"转换后的命令: {command}")
+#
+#             # 解析转换后的命令
+#             args = command_parser.parse_command(command)
+#             if args is None:
+#                 continue
+#
+#             # 执行命令
+#             should_exit = command_executor.execute_command(args)
+#             if should_exit:
+#                 print("\n AirNavigation has exited, Welcome your next command.")
+#                 break
+#
+#         except KeyboardInterrupt:
+#             print("\n收到键盘中断。请输入'exit'以正确结束程序。")
+#         except Exception as e:
+#             print(f"错误: {e}")
