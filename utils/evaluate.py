@@ -130,15 +130,15 @@ def evaluate_all_flight(xml_content: str) -> str:
     Multi-dimensional evaluation:
       Flight stability: Score: 4 (low fluctuation in speed and angular velocity, stable performance)
       Flight path consistency: Score: 5 (smooth path, no significant deviation)
-      Attitude control ability: Score: 4 (good attitude control, no sudden deviation)
+      Attitude conttakes 30 seconds, the overall performance is excellent, suitable for stable flight scenarios.
+      Main advantages: stable flight, high path consistency.
+      Improvement directrol ability: Score: 4 (good attitude control, no sudden deviation)
       Anomaly recognition: 1 anomaly was found, specifically indicating that the Z-axis speed increased sharply in the 5th second.
     Summary report:
-      The flight time takes 30 seconds, the overall performance is excellent, suitable for stable flight scenarios.
-      Main advantages: stable flight, high path consistency.
-      Improvement direction: strengthen the ability to respond to sudden anomalies.
+      The flight time ion: strengthen the ability to respond to sudden anomalies.
        """
 
-    p += f"\n## 输入数据\n```xml\n{xml_content}\n```"
+    p += f"\n## Input\n```xml\n{xml_content}\n```"
 
     # 统计生成耗时
     start = time.time()
@@ -149,7 +149,7 @@ def evaluate_all_flight(xml_content: str) -> str:
     end = time.time()
     print(f"生成总结耗时：{end - start}秒")
 
-    print(response.text)
+    #print(response.text)
 
     return response.text
 
@@ -265,7 +265,7 @@ def evaluate_realtime_flight(xml_content: str) -> str:
           Suggestion: Keep monitoring
         """
 
-    p += f"\n## 输入数据\n```xml\n{xml_content}\n```"
+    p += f"\n## Input\n```xml\n{xml_content}\n```"
 
     # 统计生成耗时
     start = time.time()
@@ -273,6 +273,6 @@ def evaluate_realtime_flight(xml_content: str) -> str:
     response = model.generate_content(p)
 
     end = time.time()
-    print(f"生成实时总结耗时：{end - start}秒")
+    #print(f"生成实时总结耗时：{end - start}秒")
 
     return response.text
