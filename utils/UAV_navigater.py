@@ -432,7 +432,7 @@ class Navigator(UAVController):
 
         # 若未找到目标，则退出
         if tracked_target is None:
-            print(f"目标ID {target_id} 未找到。")
+            # print(f"目标ID {target_id} 未找到。")
             return
 
         # 获取目标的边界框

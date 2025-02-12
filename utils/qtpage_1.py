@@ -51,13 +51,13 @@ class MainWindow(QWidget):
         self.setWindowTitle('AirNavigation')
         self.setWindowIcon(QIcon('utils/hhu.jpg'))
 
-        self.resize(2600, 1200)
+        self.resize(3000, 1500)
 
         self.fpv_uav = UAV()          # 无人机
         self.pressed_keys = []        # 存储当前按下的按键
         self.targets = []             # 存储无人机发现的目标
         self.fps = fps                # 设置主界面的帧率
-        self.record_interval = 0.1    # 轨迹更新间隔（秒）
+        self.record_interval = 0.6    # 轨迹更新间隔（秒）
         self.map_isopen = False       # 地图是否打开
         self.previous_selections = [] # 
         self.trajectory_tracking = False
@@ -260,7 +260,7 @@ class MainWindow(QWidget):
         self.btn_capture = self._create_button("Take\nphoto", self.capture, enabled=False)
 
         # 录像按钮
-        self.btn_record_video = self._create_button("Start\nrecording", self.record_video, enabled=False)
+        self.btn_record_video = self._create_button("record\nvideo", self.record_video, enabled=False)
 
         # 工作模式按钮
         self.btn_change_work_mode = self._create_button("Switch\nmode", self.change_work_mode, enabled=False)
@@ -369,7 +369,7 @@ class MainWindow(QWidget):
             self.btn_toggle_monitoring.setText("Start\nmonitoring")
             if self.monitoring_thread:
                 self.monitoring_thread.stop()
-                self.monitoring_thread.wait()
+                #self.monitoring_thread.wait()
             self.update_status_text("Monitoring stopped.")
         else:
             # 开始监控
@@ -735,9 +735,10 @@ class MainWindow(QWidget):
         # 检验地图是否打开成功
         wait_for_ue_startup()
 
+        print(self.fpv_uav.map_controller.get_map_name())
+
         # 由于这个地图比较大，所以需要等待一段时间后才能开始连接无人机
-        if self.fpv_uav.map_controller.get_map_name() == "small_city":
-            LoadingDialog.load_with_dialog(40, self.after_loading_map)
+        LoadingDialog.load_with_dialog(40, self.after_loading_map)
 
     def after_loading_map(self):
         # 这里是加载完成后要执行的代码
