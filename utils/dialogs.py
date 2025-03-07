@@ -13,7 +13,7 @@ class LoadingDialog(QDialog):
         self.setWindowIcon(QIcon('utils/hhu.jpg'))
         layout = QVBoxLayout()
 
-        self.label = QLabel(f"Loading map for {seconds} seconds...")
+        self.label = QLabel(f"加载地图 {seconds} 秒...")
         layout.addWidget(self.label)
 
         self.progress_bar = QProgressBar()
@@ -39,7 +39,7 @@ class LoadingDialog(QDialog):
     def update_progress(self):
         self.current_second += 1
         self.progress_bar.setValue(self.current_second)
-        self.label.setText(f"Loading map... ({self.seconds - self.current_second}s left)")
+        self.label.setText(f"加载地图... ({self.seconds - self.current_second}秒)")
 
         if self.current_second >= self.seconds:
             self.timer.stop()

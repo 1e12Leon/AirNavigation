@@ -207,8 +207,10 @@ class CommandWorker(QObject):
             self.gemini_model = GeminiDroneController(self.api_key)
 
             # 输出初始化信息（通过信号传递）
-            self.output_received.emit("Drone command control interface activated")
-            self.output_received.emit("\nYou can use natural language to describe the instructions, which are automatically converted to standard command format.")
+            # self.output_received.emit("Drone command control interface activated")
+            # self.output_received.emit("\nYou can use natural language to describe the instructions, which are automatically converted to standard command format.")
+            self.output_received.emit("无人机控制接口已激活")
+            self.output_received.emit("\n你可以使用中文或英文来控制无人机，例如：面向前方飞行10m")
 
             self.initialized = True
         except Exception as e:

@@ -23,19 +23,19 @@ class TrajectoryViewer(QWidget):
         
         self.style = """
             QPushButton {
-                color: rgb(236, 236, 236); /* 文本颜色 */
-                background-color: rgb(47, 47, 47); /* 背景颜色 */
-                border: 1px solid rgb(23, 23, 23); /* 边界颜色 */
+                color: rgb(0, 0, 0); /* 文本颜色 */
+                background-color: rgb(255, 255, 255); /* 背景颜色 */
+                border: 1px solid rgb(200, 200, 200); /* 边界颜色 */
                 border-radius: 5px; /* 圆角半径 */
                 padding: 5px 10px; /* 内边距 */
                 margin: 2px;
             }
             QPushButton:hover {
-                background-color: #e0e0e0;
+                background-color: rgb(245, 245, 245);
             }
             QPushButton:checked {
                 background-color: #4a90e2;
-                color: white;
+                color: black;
                 border: 1px solid #357abd;
             }
             QPushButton:pressed {
@@ -91,9 +91,9 @@ class TrajectoryViewer(QWidget):
             view_group.addWidget(btn)
         
         control_group = QHBoxLayout()
-        self.btn_pause = QPushButton('PAUSE')
-        self.btn_clear = QPushButton('CLEAR')
-        self.btn_save = QPushButton('SAVE')
+        self.btn_pause = QPushButton('暂停')
+        self.btn_clear = QPushButton('清除')
+        self.btn_save = QPushButton('保存')
         
         for btn in [self.btn_pause, self.btn_clear, self.btn_save]:
             btn.setFixedWidth(100)
@@ -120,10 +120,10 @@ class TrajectoryViewer(QWidget):
     def setup_plot(self):
         """初始化绘图设置"""
         self.ax.clear()
-        self.ax.xaxis.label.set_color('white')
-        self.ax.yaxis.label.set_color('white')
+        self.ax.xaxis.label.set_color('black')
+        self.ax.yaxis.label.set_color('black')
         if hasattr(self.ax, 'zaxis'):  # 如果是3D图
-            self.ax.zaxis.label.set_color('white')
+            self.ax.zaxis.label.set_color('black')
         # 设置axes的背景透明
         if hasattr(self.ax, 'w_xaxis'):
             self.ax.w_xaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
@@ -133,10 +133,10 @@ class TrajectoryViewer(QWidget):
         is_3d = hasattr(self.ax, 'get_proj')
 
         # 设置刻度颜色
-        self.ax.tick_params(axis='x', colors='white')
-        self.ax.tick_params(axis='y', colors='white')
+        self.ax.tick_params(axis='x', colors='black')
+        self.ax.tick_params(axis='y', colors='black')
         if hasattr(self.ax, 'zaxis'):  # 如果是3D图
-            self.ax.tick_params(axis='z', colors='white')
+            self.ax.tick_params(axis='z', colors='black')
 
         if self.current_view == '3D':
             if not is_3d:
@@ -168,7 +168,7 @@ class TrajectoryViewer(QWidget):
         self.ax.set_facecolor('none')
         self.figure.patch.set_alpha(0.0)
                 
-        self.ax.set_title(f'UAV Trajecotry - {self.current_view} View', color='white', fontsize=18)
+        self.ax.set_title(f'UAV 飞行轨迹 - {self.current_view} 视图', color='black', fontsize=18)
         self.canvas.draw()
 
     def start(self):
@@ -238,7 +238,7 @@ class TrajectoryViewer(QWidget):
                     self.ax.set_xlabel('Y (m)')
                     self.ax.set_ylabel('Z (m)')
             
-            self.ax.set_title(f'UAV Trajecotry - {self.current_view} View', color='white', fontsize=18)
+            self.ax.set_title(f'UAV 飞行轨迹 - {self.current_view} 视图', color='black', fontsize=18)
             self.canvas.draw()
             
         except Exception as e:
@@ -310,7 +310,7 @@ class TrajectoryViewer(QWidget):
     def toggle_tracking(self):
         """切换轨迹记录状态"""
         self.tracking = not self.tracking
-        self.btn_pause.setText('CONTINUE' if not self.tracking else 'PAUSE')
+        self.btn_pause.setText('持续' if not self.tracking else '停止')
 
     def clear_trajectory(self):
         """清除轨迹"""

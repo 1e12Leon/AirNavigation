@@ -20,15 +20,15 @@ class ChangeWeatherWidget(QWidget):
     def __init__(self, weather_controller):
         super(ChangeWeatherWidget, self).__init__()
         self.setWindowIcon(QtGui.QIcon('utils/hhu.jpg'))
-        self.setStyleSheet("background-color: black; color: white;")
-        self.setWindowTitle("Change weather")
+        self.setStyleSheet("background-color: white; color: black;")
+        self.setWindowTitle("切换天气")
         self.resize(800, 300)
 
         self.weather_controller = weather_controller
 
         vbox = QVBoxLayout()
         self.cbox = QComboBox()
-        self.cbox.addItems([" none", " rain", " snow", " fog"])
+        self.cbox.addItems([" 无", " 下雨", " 下雪", " 起雾"])
 
         font = self.cbox.font()
         font.setPointSize(16)
@@ -68,10 +68,10 @@ class ChangeWeatherWidget(QWidget):
         self.slider.setValue(weather_val)
 
         hbox_2 = QHBoxLayout()
-        btn_confirm = QPushButton("OK")
+        btn_confirm = QPushButton("确认")
         btn_confirm.clicked.connect(self.confirm)
         hbox_2.addWidget(btn_confirm)
-        btn_cancel = QPushButton("CANCEL")
+        btn_cancel = QPushButton("取消")
         btn_cancel.clicked.connect(self.cancel)
         hbox_2.addWidget(btn_cancel)
         vbox.addLayout(hbox_2)
@@ -112,7 +112,7 @@ class ChangeWorkModeWidget(QWidget):
     def __init__(self, uav):
         super(ChangeWorkModeWidget, self).__init__()
         self.setWindowIcon(QtGui.QIcon('utils/hhu.jpg'))
-        self.setStyleSheet("background-color: black; color: white;")
+        self.setStyleSheet("background-color: white; color: black;")
         self.setWindowTitle("Change mode")
         self.resize(800, 300)
 
@@ -134,10 +134,10 @@ class ChangeWorkModeWidget(QWidget):
 
         vbox.addWidget(self.cbox)
         hbox = QHBoxLayout()
-        btn_confirm = QPushButton("OK")
+        btn_confirm = QPushButton("确认")
         btn_confirm.clicked.connect(self.confirm)
         hbox.addWidget(btn_confirm)
-        btn_cancel = QPushButton("CANCEL")
+        btn_cancel = QPushButton("取消")
         btn_cancel.clicked.connect(self.cancel)
         hbox.addWidget(btn_cancel)
         vbox.addLayout(hbox)
@@ -158,18 +158,18 @@ class BotSortInputWidget(QWidget):
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("BoT-SORT")
+        self.setWindowTitle("目标跟踪")
         self.setWindowFlags(Qt.Window | Qt.WindowStaysOnTopHint)  # 窗口置顶
         self.resize(600, 200)
         self.setWindowIcon(QtGui.QIcon('utils/hhu.jpg'))
-        self.setStyleSheet("background-color: black; color: white;")
+        self.setStyleSheet("background-color: white; color: black;")
 
         self.offset = None  # 用于实现拖动功能
 
         # 创建输入框
-        self.label = QLabel("Please enter the target ID:", self)
+        self.label = QLabel("请输入目标ID:", self)
         self.input_field = QLineEdit(self)
-        self.confirm_button = QPushButton("OK", self)
+        self.confirm_button = QPushButton("确认", self)
         self.confirm_button.clicked.connect(self.confirm_input)
 
         # 布局
@@ -215,8 +215,8 @@ class ChangeUAVWidget(QWidget):
     def __init__(self, uav_list):
         super().__init__()
         self.setWindowIcon(QtGui.QIcon('utils/hhu.jpg'))
-        self.setStyleSheet("background-color: black; color: white;")
-        self.setWindowTitle("Change drone")
+        self.setStyleSheet("background-color: white; color: black;")
+        self.setWindowTitle("切换无人机")
         self.resize(800, 300)
 
         self.uav_list = uav_list
@@ -234,10 +234,10 @@ class ChangeUAVWidget(QWidget):
 
         vbox.addWidget(self.cbox)
         hbox = QHBoxLayout()
-        btn_confirm = QPushButton("OK")
+        btn_confirm = QPushButton("确认")
         btn_confirm.clicked.connect(self.confirm)
         hbox.addWidget(btn_confirm)
-        btn_cancel = QPushButton("CANCEL")
+        btn_cancel = QPushButton("取消")
         btn_cancel.clicked.connect(self.cancel)
         hbox.addWidget(btn_cancel)
         vbox.addLayout(hbox)
@@ -266,8 +266,8 @@ class ChangeMapWidget(QWidget):
     def __init__(self, uav):
         super().__init__()
         self.setWindowIcon(QtGui.QIcon('utils/hhu.jpg'))
-        self.setStyleSheet("background-color: black; color: white;")
-        self.setWindowTitle("Change map")
+        self.setStyleSheet("background-color: white; color: black;")
+        self.setWindowTitle("切换地图")
         self.resize(800, 300)
 
         self.uav = uav[0] # 无人机对象
@@ -284,10 +284,10 @@ class ChangeMapWidget(QWidget):
 
         vbox.addWidget(self.cbox)
         hbox = QHBoxLayout()
-        btn_confirm = QPushButton("OK")
+        btn_confirm = QPushButton("确认")
         btn_confirm.clicked.connect(self.confirm)
         hbox.addWidget(btn_confirm)
-        btn_cancel = QPushButton("CANCE")
+        btn_cancel = QPushButton("取消")
         btn_cancel.clicked.connect(self.cancel)
         hbox.addWidget(btn_cancel)
         vbox.addLayout(hbox)
