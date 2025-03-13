@@ -80,6 +80,7 @@ class MainWindow(QWidget):
         self.btn_record_state = None
         self.btn_toggle_monitoring = None
         self.btn_instructions = None
+        self.btn_experiment = None
 
         self.label_status = None
         self.label_image = None
@@ -97,6 +98,7 @@ class MainWindow(QWidget):
         self.record_realtime_state = False  # 记录实时状态标志
         self.monitoring_flag = False  # 监控标志
         self.input_text = None
+        self.experiment_flag = False  # 实验标志
 
         self.left_panel = None
         self.right_panel = None
@@ -115,6 +117,12 @@ class MainWindow(QWidget):
         self.prev_yaw = 0
         self.prev_roll = 0
         self.adjustment_cnt = 0
+
+        self.last_x = 0
+        self.last_y = 0
+        self.last_z = 0
+        self.last_time = 0
+        self.last_adjustment_cnt = 0
 
         self.set_ui()  # 初始化界面
         QApplication.instance().installEventFilter(self)  # 安装事件过滤器
@@ -286,12 +294,12 @@ class MainWindow(QWidget):
         self.btn_record_state = self._create_button("开始记录", self.record_state, enabled=False)
         self.btn_export_targets = self._create_button("导出目标", self.export_targets, enabled=False)
         self.btn_toggle_monitoring = self._create_button("开始监控", self.toggle_monitoring, enabled=False)
-
+        self.btn_experiment = self._create_button("开始实验", self.experiment, enabled=False)
 
 
         for btn in [self.btn_connect, self.btn_change_weather, self.btn_change_uav, self.btn_change_map,
                     self.btn_change_work_mode, self.btn_record_state, self.btn_record_video,
-                    self.btn_capture, self.btn_toggle_monitoring, self.btn_export_targets]:
+                    self.btn_capture, self.btn_toggle_monitoring, self.btn_export_targets, self.btn_experiment]:
             btn.setFixedSize(160, 80)
             button_layout.addWidget(btn)
             btn.setFocusPolicy(Qt.NoFocus)
@@ -304,7 +312,79 @@ class MainWindow(QWidget):
 
         control_panel.setLayout(layout)
         return control_panel
-    
+
+    def experiment(self):
+        if self.experiment_flag == False:
+            self.experiment_flag = True
+            self.btn_experiment.setText("结束实验")
+            x, y, z = self.fpv_uav.get_body_position()
+            self.last_x = round(x, 2)
+            self.last_y = round(y, 2)
+            self.last_z = round(z, 2)
+            self.last_time = time.time()
+            self.last_adjustment_cnt = self.adjustment_cnt
+        else :
+            self.experiment_flag = False
+            self.btn_experiment.setText("开始实验")
+            x, y, z = self.fpv_uav.get_body_position()
+            x = round(x, 2)
+            y = round(y, 2)
+            z = round(z, 2)
+            t = time.time()
+            cnt = self.adjustment_cnt
+            # 创建自定义输入对话框
+            input_dialog = QDialog()
+            input_dialog.setWindowTitle("输入实际坐标")
+            layout = QFormLayout(input_dialog)
+
+            # 创建三个浮点输入框
+            x_spin = QDoubleSpinBox()
+            y_spin = QDoubleSpinBox()
+            for spin in [x_spin, y_spin]:
+                spin.setRange(-1000000, 1000000)
+                spin.setDecimals(2)
+                spin.setSingleStep(0.1)
+
+            # 设置初始值为当前坐标
+            x_spin.setValue(x)
+            y_spin.setValue(y)
+
+            # 添加输入控件
+            layout.addRow("X坐标：", x_spin)
+            layout.addRow("Y坐标：", y_spin)
+
+            # 添加确认按钮
+            button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+            button_box.accepted.connect(input_dialog.accept)
+            button_box.rejected.connect(input_dialog.reject)
+            layout.addRow(button_box)
+
+            # 显示对话框并等待响应
+            if input_dialog.exec_() == QDialog.Accepted:
+                # 获取输入值
+                actual_x = x_spin.value() + 129340
+                actual_y = y_spin.value() + 111450
+
+                # 计算各项指标
+                distance = math.sqrt((x - self.last_x) ** 2 +
+                                     (y - self.last_y) ** 2 +
+                                     (z - self.last_z) ** 2)
+
+                time_interval = t - self.last_time
+                speed = distance / time_interval
+                adjustment_cnt = cnt - self.last_adjustment_cnt
+                euclidean_error = math.sqrt((actual_x - x) ** 2 +
+                                            (actual_y - y) ** 2)
+
+                # 更新状态显示
+                result_text = f"""实验结果：
+欧式距离误差：{euclidean_error:.2f}m
+姿态调整次数：{adjustment_cnt}
+飞行距离：{distance:.2f}m
+飞行时间：{time_interval:.2f}s
+飞行速度：{speed:.2f}m/s"""
+                self.update_status_text(result_text)
+
     def toggle_left_panel(self):
         if self.left_unfold:
             self.sender().setText("<")
@@ -739,6 +819,7 @@ class MainWindow(QWidget):
         self.btn_change_map.setEnabled(True)
         self.btn_record_state.setEnabled(True)
         self.btn_toggle_monitoring.setEnabled(True)
+        self.btn_experiment.setEnabled(True)
 
         # 替换原来的轨迹相关代码
         self.trajectory_viewer.fpv_uav = self.fpv_uav
@@ -1191,3 +1272,8 @@ class MainWindow(QWidget):
             # 参数分别表示为：正向速度 右向速度 下向速度 持续时间 是否采用偏航模式
 
             self.fpv_uav.move_by_velocity_with_same_direction_async(v_front, v_right, vz, 0.2, yaw_mode)
+        else:
+            vx, vy, vz = self.fpv_uav.get_velocity()
+            eps = 0.2
+            if abs(vx) > eps or abs(vy) > eps or abs(vz) > eps:
+                self.fpv_uav.move_by_velocity_with_same_direction_async(0, 0,0, 0.2, yaw_mode)

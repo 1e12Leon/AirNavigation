@@ -97,6 +97,7 @@ class BaseEngine(object):
         self.device = torch.device('cuda' if use_gpu and torch.cuda.is_available() else 'cpu')
         self.boxutil = YOLOV7DecodeBox(self.anchors, self.n_classes, input_shape=(640, 640), anchors_mask=self.anchors_mask) #实例化box工具类，得到正确的box
         print(f"Using device: {self.device}")
+        print(f"Using model: {model_path}")
 
         self.model = YoloBody(self.anchors_mask, self.n_classes, self.phi, pretrained=False, phi_attention=0)
         self.model.load_state_dict(torch.load(model_path, map_location=self.device))
@@ -220,7 +221,7 @@ class BaseEngine(object):
             dets = np.concatenate([final_boxes[:num[0]], np.array(final_scores)[:num[0]].reshape(-1, 1),
                                    np.array(final_cls_inds)[:num[0]].reshape(-1, 1)], axis=-1)
         else:
-            dets = self.postprocess(data, ratio)
+            dets = self.postprocess(data, ratio, nms_threshold=0.2)
 
         if dets is not None:
             final_dets = []

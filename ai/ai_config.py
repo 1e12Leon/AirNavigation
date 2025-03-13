@@ -19,7 +19,7 @@ class GeminiDroneController:
         os.environ['all_proxy'] = 'socks5://127.0.0.1:10809'
 
         genai.configure(api_key=api_key, transport='rest')
-        self.model = genai.GenerativeModel('gemini-2.0-flash-exp')
+        self.model = genai.GenerativeModel('gemini-1.5-flash')
     
         # 基础提示词，用于指导 Gemini 理解任务
         self.base_prompt = UAVPrompts.SYSTEM_PROMPT

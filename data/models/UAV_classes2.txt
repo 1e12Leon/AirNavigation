@@ -1,0 +1,6 @@
+BoxTruck
+Sedan
+SUV
+Trailer
+Truck
+Van

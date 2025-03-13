@@ -36,8 +36,8 @@ class UAVController:
         self.__control_client = airsim.MultirotorClient()
         self.__name = ""
         self.__instruction_duration = 0.04  # 无人机操作的间隔时间
-        self.__max_velocity = 10.           # 最大速度
-        self.__max_rotation_rate = 30.      # 最大旋转速率(指yaw角)
+        self.__max_velocity = 5.           # 最大速度
+        self.__max_rotation_rate = 10.      # 最大旋转速率(指yaw角)
         self.__camera_rotation = 0.  # [-math.pi/2, 0]     # 相机旋转角
         self.__max_camera_rotation_rate = math.pi / 4      # 相机旋转速度(指pitch角)
         # self.__resolution_ratio = [1920, 1080]             # 分辨率比例 即 width 与 height [1280,720]
@@ -353,7 +353,6 @@ class UAVController:
     # 无人机移动, 面朝方向不变
     def move_by_velocity_with_same_direction(self, v_front, v_right, vz, duration, yaw_mode=airsim.YawMode()):
         self.__lock.acquire()
-
         state = self.__control_client.getMultirotorState(self.__name)
         orientation = state.kinematics_estimated.orientation
         _, _, yaw = airsim.to_eularian_angles(orientation)
@@ -363,6 +362,24 @@ class UAVController:
         state = self.__control_client.getMultirotorState(self.__name)
         current_altitude = state.kinematics_estimated.position.z_val
         #print(f"Current altitude: {current_altitude}")
+
+        body_vx_NED, body_vy_NED, body_vz_NED = state.kinematics_estimated.linear_velocity
+        a = 1
+        eps = 1e-3
+        if vz_NED - body_vz_NED > eps:
+            vz_NED = min(vz_NED, body_vz_NED + a)
+        elif body_vz_NED - vz_NED > eps:
+            vz_NED = max(vz_NED, body_vz_NED - a)
+
+        if vx_NED - body_vx_NED > eps:
+            vx_NED = min(vx_NED, body_vx_NED + a)
+        elif body_vx_NED - vx_NED > eps:
+            vx_NED = max(vx_NED, body_vx_NED - a)
+
+        if vy_NED - body_vy_NED > eps:
+            vy_NED = min(vy_NED, body_vy_NED + a)
+        elif body_vy_NED - vy_NED > eps:
+            vy_NED = max(vy_NED, body_vy_NED - a)
 
         self.__control_client.moveByVelocityAsync(vx_NED, vy_NED, vz_NED, duration,
                                                   airsim.DrivetrainType.MaxDegreeOfFreedom,
@@ -375,6 +392,32 @@ class UAVController:
         self.__camera_rasing = False
         self.move_by_velocity_face_direction(v_front, v_right, vz, duration)
 
+    def move_by_velocity_new(self, vx, vy, vz, duration):
+        self.__lock.acquire()
+
+        state = self.__control_client.getMultirotorState(self.__name)
+        body_vx_NED, body_vy_NED, body_vz_NED = state.kinematics_estimated.linear_velocity
+
+        a = 1
+        eps = 1e-3
+        if vz - body_vz_NED > eps:
+            vz = min(vz, body_vz_NED + a)
+        elif body_vz_NED - vz > eps:
+            vz = max(vz, body_vz_NED - a)
+
+        if vx - body_vx_NED > eps:
+            vx = min(vx, body_vx_NED + a)
+        elif body_vx_NED - vx > eps:
+            vx = max(vx, body_vx_NED - a)
+
+        if vy - body_vy_NED > eps:
+            vy = min(vy, body_vy_NED + a)
+        elif body_vy_NED - vy > eps:
+            vy = max(vy, body_vy_NED - a) 
+
+        self.__control_client.moveByVelocityAsync(vx, vy, vz, duration,yaw_mode=airsim.YawMode(False, 0), vehicle_name=self.__name)
+        self.__lock.release()
+
     # 无人机移动, 面朝速度方向
     def move_by_velocity_face_direction(self, v_front, v_right, vz, duration):  # 前, 右, 下
         self.__lock.acquire()
@@ -384,6 +427,24 @@ class UAVController:
         _, _, yaw = airsim.to_eularian_angles(orientation)
 
         vx_NED, vy_NED, vz_NED = velocity_body_frame_to_NED(v_front, v_right, vz, yaw)
+
+        body_vx_NED, body_vy_NED, body_vz_NED = state.kinematics_estimated.linear_velocity
+        a = 1
+        eps = 1e-3
+        if vz_NED - body_vz_NED > eps:
+            vz_NED = min(vz_NED, body_vz_NED + a)
+        elif body_vz_NED - vz_NED > eps:
+            vz_NED = max(vz_NED, body_vz_NED - a)
+
+        if vx_NED - body_vx_NED > eps:
+            vx_NED = min(vx_NED, body_vx_NED + a)
+        elif body_vx_NED - vx_NED > eps:
+            vx_NED = max(vx_NED, body_vx_NED - a)
+
+        if vy_NED - body_vy_NED > eps:
+            vy_NED = min(vy_NED, body_vy_NED + a)
+        elif body_vy_NED - vy_NED > eps:
+            vy_NED = max(vy_NED, body_vy_NED - a)
 
         self.__control_client.moveByVelocityAsync(vx_NED, vy_NED, vz_NED, duration, airsim.DrivetrainType.ForwardOnly,
                                                   airsim.YawMode(False, 0), vehicle_name=self.__name)
