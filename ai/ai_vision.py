@@ -23,7 +23,7 @@ class GenimiUAVVision:
 
         # 配置Gemini API
         genai.configure(api_key=api_key, transport='rest')
-        self.model = genai.GenerativeModel('gemini-1.5-pro')
+        self.model = genai.GenerativeModel('gemini-2.5-flash-preview-05-20')
         
         # UAV 控制器实例
         self.drone_controller = drone_controller

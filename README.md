@@ -61,7 +61,7 @@
 
 - Install UE4.27([link](https://www.unrealengine.com)), configure the airsim plugin([link](https://zhuanlan.zhihu.com/p/618440744)), and open the map initialization.
   
-- In line 123 of `qtpage_1.py`, enter Gemini's api.([link](https://ai.google.dev/gemini-api/docs/api-key))
+- In `config.py`, enter Gemini's api.([link](https://ai.google.dev/gemini-api/docs/api-key))
   
 
 # Instructions

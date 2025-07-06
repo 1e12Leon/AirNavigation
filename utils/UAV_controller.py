@@ -48,7 +48,7 @@ class UAVController:
         self.__last_controlled_time = 0      # 上一次控制无人机的时间
         self.__lock = threading.Lock()
         self.map_controller = MapController()
-
+        self.move_flag = True
 
         # 记录功能
         self.__recording = False  # 控制记录状态
@@ -429,7 +429,7 @@ class UAVController:
         vx_NED, vy_NED, vz_NED = velocity_body_frame_to_NED(v_front, v_right, vz, yaw)
 
         body_vx_NED, body_vy_NED, body_vz_NED = state.kinematics_estimated.linear_velocity
-        a = 1
+        a = 2
         eps = 1e-3
         if vz_NED - body_vz_NED > eps:
             vz_NED = min(vz_NED, body_vz_NED + a)
@@ -738,8 +738,14 @@ class UAVController:
             bool: 是否成功到达目标位置
         """
         target_x, target_y, target_z = target
+        self.move_flag = True
         self.__control_client.moveToPositionAsync(target_x, target_y, target_z, velocity, vehicle_name=self.__name).join()
 
+    def get_move_flag(self):
+        return  self.move_flag
+
+    def set_move_flag(self, flag):
+        self.move_flag = flag
 
 async def fetch_frame_async(image_client, capture_type, vehicle_name):
     response = await asyncio.to_thread(

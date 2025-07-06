@@ -4,8 +4,6 @@ import time
 import numpy as np
 import sys
 
-import pygame
-
 from BotSort_tracker.tracker.bot_sort import BoTSORT
 from BotSort_tracker.visualize import plot_tracking
 # from utils.target_tracking_system import TargetTrackingSystem
@@ -120,10 +118,9 @@ class Predictor(BaseEngine):
     def __init__(self, engine_path):
         super(Predictor, self).__init__(engine_path)
 
-        self.n_classes = 13 
+        self.n_classes = 6
         self.class_names = [
-            "SUV","Van","BoxTruck","Pickup","Sedan","Trailer","Truck",
-            "ForkLift","Jeep","Motor","Bulldozer","Excavator","RoadRoller"
+            "SUV","Van","BoxTruck","Sedan","Trailer","Truck"
         ]
 
 # 导航器类
@@ -144,7 +141,7 @@ class Navigator(UAVController):
         self.__last_recovery_attempt = 0        # 
         self.__recovery_cooldown = 2.0          # 恢复冷却时间
 
-        self.__pred = Predictor(engine_path=r"data/models/best_epoch_weights_Brushify.pth")  # 预测器
+        self.__pred = Predictor(engine_path=r"data/models/best_epoch_weights_Brushify_100.pth")  # 预测器
         self.__pred.inference(np.array([[[0, 0, 0]]], dtype=np.float64), conf=0.1, end2end=False)
         self.__pred.get_fps()
 
@@ -388,6 +385,9 @@ class Navigator(UAVController):
         # 使用YOLO检测目标
         dets = self.__pred.inference_dets(origin_frame, conf=0.5, end2end=False)
 
+        # print("dets")
+        # print(dets)
+
         # 若未检测到任何目标，则进入寻找模式
         if dets is None or len(dets) == 0:
             self.set_frame(origin_frame)
@@ -398,6 +398,9 @@ class Navigator(UAVController):
 
         # 更新BoT-SORT跟踪器
         tracked_targets = self.__botsort_tracker.update(dets, origin_frame)
+
+        # print("tracked_targets")
+        # print(tracked_targets)
 
         # 若未跟踪到目标，进入寻找模式
         if not tracked_targets:
@@ -700,12 +703,8 @@ class Navigator(UAVController):
         """
         screen_width, screen_height = self.get_resolution_ratio()
         camera_rate = self.get_max_camera_rotation_rate()
-        
-        # 得到速度
-        adaptive_speed = self.get_max_velocity()
-        if low_speed:
-            adaptive_speed /= 2
-        
+        # f = self.get_camera_focal_length()  # 需实现焦距获取接口
+
         # 获取目标角度和位置信息
         target_center_x = (box[0] + box[2]) / 2
         target_center_y = (box[1] + box[3]) / 2
@@ -714,28 +713,31 @@ class Navigator(UAVController):
 
         f = 1.0 / (math.tan(self.get_FOV_degree() / 2)) # 需实现焦距获取接口
         #f2 = self.get_control_client().simGetCameraInfo("0").focal_length * screen_width
-        print(f"焦距1 {f}")
+        # print(f"焦距1 {f}")
 
         # 计算目标占比ρ（公式5.1）
         rho = self.calculate_rho(box, screen_width, screen_height)
-        print("box = " + str(box))
+        # print("box = " + str(box))
         # 获取无人机高度（需实现高度传感器接口）
         _, _, h = self.get_body_position()
 
-        h = abs(h - 20.5)
-        print("h = " + str(h))
+        h = abs(h - 0.5)
+        # print("h = " + str(h))
 
 
         # 多源动态速度控制（公式5.9）
         speed_params = {
-            'v_base': 3.0,
-            'h_ref': 22.0,
+            'v_base': 10.0,
+            'h_ref': 2.0,
             'alpha': 0.5,
             'beta': 0.025,
             'v_max': 20.0
         }
         adaptive_speed = self.dynamic_speed_control(20 * rho, h, delta_x, delta_y, speed_params)
 
+        adaptive_speed = adaptive_speed
+
+        #adaptive_speed = 5
 
         # 自适应步长控制（公式5.8）
         step_params = {
@@ -749,7 +751,7 @@ class Navigator(UAVController):
             'gamma': 0.8
         }
         delta_s = self.adaptive_step_control(rho, h, step_params)
-
+        #delta_s = 0.5
         # 姿态调整参数
         attitude_params = {
             'K_phi': 0.01,  # 横滚增益系数
@@ -760,6 +762,22 @@ class Navigator(UAVController):
         phi, theta = self.calculate_attitude_adjustment(
             delta_x, delta_y, screen_width, screen_height, h, f, attitude_params
         )
+
+
+        # eps = 1e-3
+        # ma = 0.02
+        # if abs(phi) > eps:
+        #     if phi > 0:
+        #         phi = ma
+        #     else:
+        #         phi = -ma
+        #
+        # if abs(theta) > eps:
+        #     if theta > 0:
+        #         theta = ma
+        #     else:
+        #         theta = -ma
+
 
         print("rho=" + str(rho) + " v=" + str(adaptive_speed) + " delta_s=" + str(delta_s))
         print("roll = " + str(phi) + " pitch = " + str(theta))
@@ -793,8 +811,8 @@ class Navigator(UAVController):
 
             else:
                 # 相机已经垂直向下，执行精确定位
-                v_front = adaptive_speed * (screen_height / 2 - target_center_y) / screen_height
-                v_right = adaptive_speed * (target_center_x - screen_width / 2) / screen_width
+                v_front = 5 * adaptive_speed * (screen_height / 2 - target_center_y) / screen_height
+                v_right = 5 * adaptive_speed * (target_center_x - screen_width / 2) / screen_width
 
                 self.move_by_velocity_with_same_direction(v_front, v_right, 0, t)
                 self.__camera_rasing = False
@@ -804,9 +822,10 @@ class Navigator(UAVController):
                                                                               2) < 200:
                     # 获取目标位置并添加到目标列表
                     x_NED, y_NED, z_NED = self.get_camera_position()
+
                     print(f"目标定位成功：{x_NED}, {y_NED}, {z_NED}")
                     self.__botsort_tracked_targets.append(
-                        TargetTracker(target_cls_name, x_NED, y_NED, 0, self.__botsort_current_target_id))
+                         TargetTracker(target_cls_name, x_NED, y_NED, 0, self.__botsort_current_target_id))
                     self.__botsort_tracked_targets_id.append(self.__botsort_current_target_id)
 
                     # 定位成功，并且把目前的curent_target变为空，重新获得下一个目标
@@ -818,24 +837,31 @@ class Navigator(UAVController):
             print("rotation" + str(self.get_camera_rotation()))
 
             # 分解速度
-            v_front = adaptive_speed * (target_picth_to_body ) * math.cos(target_yaw)
-            v_right = adaptive_speed * (target_picth_to_body ) * math.sin(target_yaw)
+            v_front = 3 * adaptive_speed * (target_picth_to_body ) * math.cos(target_yaw)
+            v_right = 3 * adaptive_speed * (target_picth_to_body ) * math.sin(target_yaw)
             print(f"v_front={v_front}, v_right={v_right}")
             # 调整相机角度，保持目标在视野中
-            if screen_height - box[3] < 20:
-                self.rotate_camera(-camera_rate, t)
+            if screen_height - box[3] < 30:
+                self.rotate_camera(-camera_rate, 2 * self.get_instruction_duration())
 
             # 若目标即将超出屏幕下边缘, 则调整俯仰角
-            if box[1] < 20:
-                self.rotate_camera(camera_rate, t)
+            if box[1] < 30:
+                self.rotate_camera(camera_rate, 2 * self.get_instruction_duration())
 
             vx, vy, vz = calculate_body_frame_velocity(adaptive_speed, theta, phi, target_yaw)
             vy = -vy
             print(f"[控制指令] 速度=({vx:.2f}, {vy:.2f}, {vz:.2f}) m/s")
-            self.move_by_velocity_face_direction(vx,vy,vz * math.sin(-self.get_camera_rotation()) if rho < 0.2 else 0,t)
+            self.move_by_velocity_face_direction(vx,vy,-vz * math.sin(-self.get_camera_rotation()) if rho < 0.2 else 0,t)
+            # self.move_by_velocity_face_direction(vx,vy,-vz * math.sin(-self.get_camera_rotation()) if rho < 0.2 else 0,t + 0.02)
             #self.move_by_velocity_face_direction(vx, vy, vz * math.sin(-self.get_camera_rotation()) if rho < 0.2 else 0, t)
             #self.move_by_velocity_face_direction(v_front, v_right, 0, t)
             self.__camera_rasing = False
+
+    def get_botsort_current_target_id(self):
+        return self.__botsort_current_target_id
+
+    def get_botsort_tracked_targets_id(self):
+        return self.__botsort_tracked_targets_id
 
     def save_current_context(self, target_id, bbox):
         """保存当前ID的上下文"""

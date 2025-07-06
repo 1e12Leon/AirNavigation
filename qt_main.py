@@ -1,7 +1,7 @@
 from importlib import import_module
 from time import sleep
 
-from utils.qtpage_1 import *
+from utils.qtpage_2 import *
 #from utils.test import *
 import os
 import sys

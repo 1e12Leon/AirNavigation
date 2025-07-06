@@ -189,7 +189,7 @@ class BotSortInputWidget(QWidget):
                 else:
                     target_ids = [int(input_text)]
                 self.target_ids_updated.emit(target_ids)  # 发射信号
-                QMessageBox.information(self, "Success", f"Set target ID: {target_ids}")
+                #QMessageBox.information(self, "Success", f"Set target ID: {target_ids}")
             except ValueError:
                 QMessageBox.warning(self, "Error", "Please enter a valid integer！")
         else:

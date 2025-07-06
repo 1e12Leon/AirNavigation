@@ -87,10 +87,10 @@ class BaseEngine(object):
 
         self.anchors_mask = [[6, 7, 8], [3, 4, 5], [0, 1, 2]]
         self.anchors, _ = get_anchors("./data/models/yolo_anchors.txt")
-        self.phi = 'tiny'
+        self.phi = 'l'
 
         # 类别相关信息
-        self.n_classes = 13      # 种类的个数
+        self.n_classes = 6      # 种类的个数
         self.imgsz = (640, 640)  # 默认值或文档中指定的大小
 
         # 设备选择

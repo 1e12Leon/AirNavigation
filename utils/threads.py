@@ -60,3 +60,34 @@ class MonitoringThread(QThread):
         停止线程。
         """
         self.running = False
+
+class MoveThread(QThread):
+    # 定义信号，传递飞行状况
+    monitoring_signal = pyqtSignal(str)
+
+    def __init__(self, fpv_uav, x, y, z):
+        super().__init__()
+        self.fpv_uav = fpv_uav  # UAV 控制器实例
+        self.x = x
+        self.y = y
+        self.z = z
+        self.running = True    # 控制线程运行状态
+
+    def run(self):
+        """
+        线程运行逻辑：每隔 4 秒监控一次飞行状况。
+        """
+        while self.running:
+            x, y, z = self.fpv_uav.get_body_position()
+            if abs(x - self.x) + abs(y - self.y) + abs(z - self.z) < 0.2:
+                self.running = False
+                break
+            self.fpv_uav.get_control_client().moveToPositionAsync(x, y, z, 3)
+
+
+
+    def stop(self):
+        """
+        停止线程。
+        """
+        self.running = False
