@@ -32,7 +32,10 @@
 
 # News
 
-- **2025/02/11**: We construct an autonomous UAV navigation simulation system enhanced by multimodal large language models. Codes will be open-sourced at this repository.
+- **2025/02/11**:We construct an autonomous UAV navigation simulation system enhanced by multimodal large language models. Codes will be open-sourced at this repository.
+- **2025/03/07**:feat: add Chinese localization for white theme
+- **2025/07/06**:feat: add experimental metrics & update config/docs
+- **2025/07/22**:feat: add dataset collection & update docs
 
 # Getting Started
 
