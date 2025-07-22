@@ -1,6 +1,7 @@
 import google.generativeai as genai
 import time
 import os
+from config import gemini_api
 
 # 总结整个飞行日志的飞行情况
 def evaluate_all_flight(xml_content: str) -> str:
@@ -8,8 +9,8 @@ def evaluate_all_flight(xml_content: str) -> str:
     os.environ['https_proxy'] = 'http://127.0.0.1:10809'
     os.environ['all_proxy'] = 'socks5://127.0.0.1:10809'
 
-    genai.configure(api_key=f"AIzaSyD4M_7jIwCQo85obStscNM7f68X5iWUKo4", transport='rest')
-    model = genai.GenerativeModel("gemini-exp-1206")
+    genai.configure(api_key=gemini_api, transport='rest')
+    model = genai.GenerativeModel("gemini-2.5-flash-preview-05-20")
 
     # p = """
     # # Role: 无人机飞行情况分析专家
@@ -160,7 +161,7 @@ def evaluate_realtime_flight(xml_content: str) -> str:
     os.environ['https_proxy'] = 'http://127.0.0.1:10809'
     os.environ['all_proxy'] = 'socks5://127.0.0.1:10809'
 
-    genai.configure(api_key=f"AIzaSyD4M_7jIwCQo85obStscNM7f68X5iWUKo4", transport='rest')
+    genai.configure(api_key=gemini_api, transport='rest')
     model = genai.GenerativeModel("gemini-2.5-flash-preview-05-20")
 
     # p = """

@@ -55,16 +55,47 @@
     ```bash
     conda install torchaudio cudatoolkit=11.3 -c pytorch -y
     conda install torch-1.10.1+cu113-cp39-cp39-win_amd64.whl torchvision-0.11.2+cu113-cp39-cp39-win_amd64.whl
-  # if you prefer other cuda versions, please choose suitable pytorch versions
+    # if you prefer other cuda versions, please choose suitable pytorch versions
     # see: https://pytorch.org/get-started/locally/
     ```
 
 - Install UE4.27([link](https://www.unrealengine.com)), configure the airsim plugin([link](https://zhuanlan.zhihu.com/p/618440744)), and open the map initialization.
-  
-- In `config.py`, enter Gemini's api.([link](https://ai.google.dev/gemini-api/docs/api-key))
-  
+
+## Configuration
+
+### Map Configuration
+
+1. Configure `settings/map.json` with your map settings:
+   ```json
+   {
+       "map": "Brushify",
+       "start_map_batfile": "E:\\UAV_temp_staging\\demo_code\\python\\Shell\\Brushify.bat",
+       "map_list": [
+           "Brushify",
+           "beach"
+       ]
+   }
+   ```
+
+2. Create corresponding batch files in the `Shell` directory for each map (e.g., `Brushify.bat`, `beach.bat`):
+   ```batch
+   @echo off
+   REM Launch Unreal Engine project with map Brushify
+   REM Note: Replace E:\UE4\UE_4.27\ with your Unreal Engine root directory
+   REM Note: Replace E:\UAV_temp_staging\UE-project\UAV\UAV.uproject with your project path
+   E:\UE4\UE_4.27\Engine\Binaries\Win64\UE4Editor.exe "E:\UAV_temp_staging\UE-project\UAV\UAV.uproject" -game -windowed -ResX=1280 -ResY=720
+   ```
+
+### Gemini API Configuration
+
+1. Get your Gemini API key from [Google AI Studio](https://ai.google.dev/gemini-api/docs/api-key)
+2. Open `config.py` and enter your API key in the designated field:
+   ```python
+   GEMINI_API_KEY = "your_api_key_here"
+   ```
 
 # Instructions
+
 ## Basic Controls
         
 <li><b>Connect:</b> Click the 'Connect' button to establish a connection.</li>
@@ -75,8 +106,8 @@
 <li><b>Change Drone:</b> Switch between different drones using the 'Change Drone' button.</li>
 <li><b>Change Map:</b> Use the 'Change Map' button to switch maps.</li>
 <li><b>Record Status:</b> Click 'Record Status' to log the current state.</li>
-<li><b>Export Target:</b> Use the 'Export Target' button to save target data.</li>
-
+<li><b>Export Target:</b> Use the 'Export Target' button to save object data.</li>
+<li><b>Collect Dataset:</b> Click 'Collect' to start automated dataset collection.</li>
 
 ## Keyboard Control Instructions
 <ul>
@@ -101,6 +132,49 @@
         <li><b>F:</b> Log flight status.</li>
     </ul>
 </ul>
+
+## Detailed Instructions
+
+### Change Weather
+
+You can change the weather by clicking the 'Change Weather' button, such as "none", "rain", "snow", "dust" and "fog".
+
+### Change Drone
+
+You can change the drone by clicking the 'Change Drone' button, such as "Default", "Matrice200" and "sampleflyer".
+
+### Change Map
+
+You can change the map by clicking the 'Change Map' button, such as "Brushify", and "beach".
+
+### Change Mode
+
+You can change the mode by clicking the 'Change Mode' button, such as "normal", "detect", "botsort" and "track".
+
+- normal: The default mode where you can control the drone manually.
+- detect: This mode enables the system to detect and track objects in the environment.
+- botsort: This mode enables the UAV to detect objects in the environment, enter the id to track the object.
+- track: This mode enables the UAV to find the object and track it.
+
+### Dataset Collection
+
+The system includes an automated dataset collection feature that captures images and generates annotations:
+
+1. Connect to Unreal Engine by clicking the 'Connect' button
+2. Click the 'Collect' button to start dataset collection
+3. The system will automatically:
+   - Capture multiple types of images (Scene, Segmentation, Depth, etc.)
+   - Generate XML annotations for detected objects
+   - Save multi-modal data with different height and angle in organized directories:
+     - Images: `data/capture_imgs/`
+       - Scene images: `SceneImage/`
+       - Segmentation images: `SegmentationImage/`
+       - Depth images: `DepthPlanarImage/`, `DepthPerspectiveImage/`, `DepthVisImage/`
+       - Surface normals: `SurfaceNormalsImage/`
+       - Infrared images: `InfraredImage/`
+     - Annotations: `data/Annotation/`
+  
+
 
 # Contact
 Please Contact yaoliang@hhu.edu.cn

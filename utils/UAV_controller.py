@@ -30,7 +30,7 @@ class UAVController:
     def __init__(self):
         self.__airsim_json = r"settings/settings.json"
         self.__uav_name_list = ["Default","Matrice200","sampleflyer"] # 无人机名称列表
-        self.__capture_all_image_kinds = ["Scene", "DepthVis","DepthPerspective","DepthPlanar","Segmentation", "SurfaceNormals", "Infrared"] # 捕获所有图像类型
+        self.__capture_all_image_kinds = ["Scene", "DepthVis","DepthPerspective","DepthPlanar","Segmentation", "SurfaceNormals", "Infrared", "All_Auto"] # 捕获所有图像类型
         self.__capture_type = ["Scene"]                     # 目前捕获的图像类型
         self.__image_client = airsim.MultirotorClient()
         self.__control_client = airsim.MultirotorClient()

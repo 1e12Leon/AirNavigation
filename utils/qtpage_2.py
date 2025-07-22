@@ -4,7 +4,6 @@ import datetime
 from PyQt5.QtCore import QEvent, QThread, QMetaObject, Q_ARG
 from PyQt5.QtGui import QIcon
 
-from cv2 import threshold
 from use_cmd import CommandWorker
 from utils.button_style import get_button_style
 from utils.trajectory_viewer import TrajectoryViewer
@@ -16,6 +15,7 @@ from config import gemini_api
 
 from utils.dialogs import LoadingDialog, HelpWindow
 from utils.threads import EvaluationThread,MonitoringThread, MoveThread
+from utils.fly import collect_dataset
 
 # 根据当前键盘中控制无人机方向的按键计算无人机飞行速度
 def calculate_velocity(velocity_value, direction_vector: list):
@@ -82,6 +82,7 @@ class MainWindow(QWidget):
         self.btn_toggle_monitoring = None
         self.btn_instructions = None
         self.btn_experiment = None
+        self.btn_collect = None
 
         self.label_status = None
         self.label_image = None
@@ -295,11 +296,13 @@ class MainWindow(QWidget):
         self.btn_export_targets = self._create_button("导出目标", self.export_targets, enabled=False)
         self.btn_toggle_monitoring = self._create_button("开始监控", self.toggle_monitoring, enabled=False)
         self.btn_experiment = self._create_button("开始实验", self.experiment, enabled=False)
-
+        self.btn_collect = self._create_button("收集", self.collect, enabled=False)
 
         for btn in [self.btn_connect, self.btn_change_weather, self.btn_change_uav, self.btn_change_map,
                     self.btn_change_work_mode, self.btn_record_state, self.btn_record_video,
-                    self.btn_capture, self.btn_toggle_monitoring, self.btn_export_targets, self.btn_experiment]:
+                    self.btn_capture, self.btn_toggle_monitoring, self.btn_export_targets, self.btn_collect
+            # , self.btn_experiment
+                    ]:
             btn.setFixedSize(160, 80)
             button_layout.addWidget(btn)
             btn.setFocusPolicy(Qt.NoFocus)
@@ -390,6 +393,12 @@ class MainWindow(QWidget):
 飞行速度：{speed:.2f}m/s
 """
                 self.update_status_text(result_text)
+
+    def collect(self):
+        try: 
+            collect_dataset(self.fpv_uav.get_control_client(), self.fpv_uav.map_controller.get_map_name())
+        except Exception as e:
+            self.update_status_text(f"收集数据失败: {e}")
 
     def toggle_left_panel(self):
         if self.left_unfold:
@@ -793,23 +802,6 @@ class MainWindow(QWidget):
 
         print(self.fpv_uav.map_controller.get_map_name())
 
-#         self.update_status_text("""
-# Flight Log Analysis:
-#   Data Trend:
-#     Speed: Initial speed approximately 0.85 m/s, accelerated to a peak of about 1.68 m/s, then decelerated to near stillness (approx. 0.06 m/s). Speed fluctuation was significant.
-#     Attitude: Pitch and Roll angles generally fluctuated little, mostly within +/- 0.1 radians. Yaw angle changed from -0.6 radians to +0.66 radians, performing about a 72-degree turn, primarily in the middle and latter half of the flight.
-#     Path: The drone moved from coordinates (0.08, -23.01, -5.41) to (51.1, -32.47, -2.34). The overall trajectory involved moving forward, to the left, and continuously ascending. The trajectory record itself was continuous.
-#   Multi-dimensional Evaluation:
-#     Flight Stability: Score: 2 points (Large speed range (approx. 0.06 m/s to 1.68 m/s), significant speed changes. Angular velocity fluctuated sharply, especially pitch angular velocity which repeatedly exceeded +/- 2.0 rad/s, and roll angular velocity also reached a peak of -1.6 rad/s, indicating generally average stability)
-#     Flight Path Consistency: Score: 4 points (Position data recording was continuous, with no obvious jumps or interruptions. Although the flight included changes in speed and turns, the transitions between recorded waypoints were relatively smooth)
-#     Attitude Control Capability: Score: 2 points (Pitch and roll angles could generally be maintained within a small range, but very large angular velocity peaks occurred during maneuvering flight. Yaw control completed large-angle turns, but was accompanied by large angular velocities, indicating aggressive control or difficulty in adjustment, with significant room for improvement in control precision and stability)
-#     Anomaly Identification: 6 anomalies found, specific explanation: Multiple extreme angular velocity values detected. Pitch Rate exhibited peaks with absolute values exceeding 2.0 rad/s at timestamps 1743132275.1, 1743132284.1, 1743132286.6, 1743132295.5, 1743132311.0. Roll Rate reached -1.62 rad/s at timestamp 1743132318.3. These values are significantly higher than at other times during the flight, possibly indicating very sharp maneuvers or potential control oscillations/overshoots.
-#   Summary Report:
-#     Overall performance of this flight: Completed a maneuvering flight involving significant speed changes and heading alterations, but the flight process was not stable enough, and attitude control fluctuated considerably.
-# Main advantages: Successfully executed the predetermined complex path (forward, ascent, turn), and path data recording was complete and continuous.
-# Areas for improvement: It is recommended to optimize flight controller parameters to suppress large fluctuations in speed and angular velocity during maneuvers, and to improve flight smoothness and attitude control precision. Further analysis of the root cause of angular velocity peaks is needed to distinguish whether they were caused by operational commands or control system stability issues.
-#                 """)
-
         # 由于这个地图比较大，所以需要等待一段时间后才能开始连接无人机
         LoadingDialog.load_with_dialog(40, self.after_loading_map)
 
@@ -842,7 +834,8 @@ class MainWindow(QWidget):
         self.btn_change_map.setEnabled(True)
         self.btn_record_state.setEnabled(True)
         self.btn_toggle_monitoring.setEnabled(True)
-        self.btn_experiment.setEnabled(True)
+        self.btn_collect.setEnabled(True)
+        # self.btn_experiment.setEnabled(True)
 
         # 替换原来的轨迹相关代码
         self.trajectory_viewer.fpv_uav = self.fpv_uav
@@ -850,53 +843,56 @@ class MainWindow(QWidget):
 
         self.update_label_status()
 
+        # 飞行到指定点
+        def fly_to_position(self):
+            self.fpv_uav.set_move_flag(True)
+            x, y, z = self.fpv_uav.get_body_position()
+
+            # 创建自定义输入对话框
+            input_dialog = QDialog()
+            input_dialog.setWindowTitle("输入实际坐标")
+            layout = QFormLayout(input_dialog)
+            #
+            # # 创建三个浮点输入框
+            x_spin = QDoubleSpinBox()
+            y_spin = QDoubleSpinBox()
+            z_spin = QDoubleSpinBox()
+            for spin in [x_spin, y_spin, z_spin]:
+                spin.setRange(-1000000, 1000000)
+                spin.setDecimals(2)
+                spin.setSingleStep(0.01)
+
+            # # 设置初始值为当前坐标
+            x_spin.setValue(x)
+            y_spin.setValue(y)
+            z_spin.setValue(z)
+            #
+            # # 添加输入控件
+            layout.addRow("X坐标：", x_spin)
+            layout.addRow("Y坐标：", y_spin)
+            layout.addRow("Z坐标：", z_spin)
+
+            #
+            # # 添加确认按钮
+            button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+            button_box.accepted.connect(input_dialog.accept)
+            button_box.rejected.connect(input_dialog.reject)
+            layout.addRow(button_box)
+
+            # 显示对话框并等待响应
+            if input_dialog.exec_() == QDialog.Accepted:
+                # 获取输入值
+                actual_x = x_spin.value()
+                actual_y = y_spin.value()
+                actual_z = z_spin.value()
+                self.fpv_uav.rotate_camera(1, 3)
+                self.fpv_uav.get_control_client().moveToPositionAsync(actual_x, actual_y, actual_z, 3)
+                # self.move_thread = MoveThread(self.fpv_uav, actual_x, actual_y, actual_z)
+                # self.move_thread.start()
+
     # 点击"拍照"按钮后, 执行capture函数, 将capture_flag设置为True, 随后在show_image函数中会保存图片
     def capture(self):
-        #self.capture_flag = True
-        self.fpv_uav.set_move_flag(True)
-        x, y, z = self.fpv_uav.get_body_position()
-
-        # 创建自定义输入对话框
-        input_dialog = QDialog()
-        input_dialog.setWindowTitle("输入实际坐标")
-        layout = QFormLayout(input_dialog)
-        #
-        # # 创建三个浮点输入框
-        x_spin = QDoubleSpinBox()
-        y_spin = QDoubleSpinBox()
-        z_spin = QDoubleSpinBox()
-        for spin in [x_spin, y_spin, z_spin]:
-            spin.setRange(-1000000, 1000000)
-            spin.setDecimals(2)
-            spin.setSingleStep(0.01)
-
-        # # 设置初始值为当前坐标
-        x_spin.setValue(x)
-        y_spin.setValue(y)
-        z_spin.setValue(z)
-        #
-        # # 添加输入控件
-        layout.addRow("X坐标：", x_spin)
-        layout.addRow("Y坐标：", y_spin)
-        layout.addRow("Z坐标：", z_spin)
-
-        #
-        # # 添加确认按钮
-        button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
-        button_box.accepted.connect(input_dialog.accept)
-        button_box.rejected.connect(input_dialog.reject)
-        layout.addRow(button_box)
-
-        # 显示对话框并等待响应
-        if input_dialog.exec_() == QDialog.Accepted:
-            # 获取输入值
-            actual_x = x_spin.value()
-            actual_y = y_spin.value()
-            actual_z = z_spin.value()
-            self.fpv_uav.rotate_camera(1, 3)
-            self.fpv_uav.get_control_client().moveToPositionAsync(actual_x, actual_y, actual_z, 3)
-            # self.move_thread = MoveThread(self.fpv_uav, actual_x, actual_y, actual_z)
-            # self.move_thread.start()
+        self.capture_flag = True
 
     def capture_multi_select_menu(self, position):
         """右键点击弹出多选菜单"""
@@ -1254,10 +1250,10 @@ class MainWindow(QWidget):
             self.prev_pitch = pitch
             self.prev_roll = roll
             self.prev_yaw = yaw
-
-        if len(self.fpv_uav.get_botsort_tracked_targets_id()) > self.botsort_tracked_id_cnt  and self.experiment_flag == True:
-            self.botsort_tracked_id_cnt = len(self.fpv_uav.get_botsort_tracked_targets_id())
-            self.experiment()
+        # 实验测试代码
+        # if len(self.fpv_uav.get_botsort_tracked_targets_id()) > self.botsort_tracked_id_cnt  and self.experiment_flag == True:
+        #     self.botsort_tracked_id_cnt = len(self.fpv_uav.get_botsort_tracked_targets_id())
+        #     self.experiment()
 
 
     # 重写关闭界面触发的事件
