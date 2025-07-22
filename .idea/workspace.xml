@@ -5,82 +5,14 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="72e08a7b-226c-4253-85a5-c3c7b63090c9" name="变更" comment="1.增加实验功能&#10;2.按照论文方法重新写了目标检测功能，并调整了参数">
+      <change afterPath="$PROJECT_DIR$/utils/fly.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/utils/processcopy.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/gs_GraduationDesign_python.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/gs_GraduationDesign_python.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ai/ai_config.py" beforeDir="false" afterPath="$PROJECT_DIR$/ai/ai_config.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ai/ai_vision.py" beforeDir="false" afterPath="$PROJECT_DIR$/ai/ai_vision.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/capture_imgs/DepthPerspective/capture_DepthPerspective_date_12_23_19_09_49_.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/capture_imgs/DepthPerspective/capture_DepthPerspective_date_12_23_19_10_31_.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/capture_imgs/DepthPlanar/capture_DepthPlanar_date_12_23_19_09_49_.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/capture_imgs/DepthPlanar/capture_DepthPlanar_date_12_23_19_10_31_.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/capture_imgs/DepthVis/capture_DepthVis_date_12_23_19_09_49_.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/capture_imgs/DepthVis/capture_DepthVis_date_12_23_19_10_31_.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/capture_imgs/Infrared/capture_Infrared_date_01_09_22_24_52_.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/capture_imgs/Infrared/capture_Infrared_date_12_23_19_09_49_.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/capture_imgs/Infrared/capture_Infrared_date_12_23_19_10_31_.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/capture_imgs/Scene/capture_Scene_date_01_02_15_30_35_.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/capture_imgs/Scene/capture_Scene_date_01_02_15_30_53_.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/capture_imgs/Scene/capture_Scene_date_01_09_22_24_52_.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/capture_imgs/Scene/capture_Scene_date_01_13_21_09_24_.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/capture_imgs/Scene/capture_Scene_date_12_23_19_09_21_.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/capture_imgs/Scene/capture_Scene_date_12_23_19_09_24_.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/capture_imgs/Scene/capture_Scene_date_12_23_19_09_49_.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/capture_imgs/Scene/capture_Scene_date_12_23_19_10_31_.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/capture_imgs/Segmentation/capture_Segmentation_date_12_23_19_09_49_.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/capture_imgs/Segmentation/capture_Segmentation_date_12_23_19_10_31_.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/capture_imgs/SurfaceNormals/capture_SurfaceNormals_date_01_09_22_24_52_.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/capture_imgs/SurfaceNormals/capture_SurfaceNormals_date_12_23_19_09_49_.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/capture_imgs/SurfaceNormals/capture_SurfaceNormals_date_12_23_19_10_31_.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/state_logs/output.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/state_logs/uav_state_data_2024-12-23_19-19-32.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/state_logs/uav_state_data_2024-12-23_19-19-56.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/state_logs/uav_state_data_2025-01-02_14-30-05.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/state_logs/uav_state_data_2025-01-08_12-11-11.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/state_logs/uav_state_data_2025-01-08_12-11-13.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/state_logs/uav_state_data_2025-01-08_12-11-16.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/state_logs/uav_state_data_2025-01-09_22-58-50.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/state_logs/uav_state_data_2025-01-13_22-24-09.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/state_logs/uav_state_data_2025-01-13_22-24-17.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/state_logs/uav_state_data_2025-01-13_22-32-26.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/state_logs/uav_state_data_2025-01-13_22-37-19.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/state_logs/uav_state_data_2025-01-13_22-41-39.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/state_logs/uav_state_data_2025-01-13_22-42-13.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/state_logs/uav_state_data_2025-01-13_22-46-02.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/state_logs/uav_state_data_2025-01-13_22-52-17.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/state_logs/uav_state_data_2025-01-13_22-55-05.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/state_logs/uav_state_data_2025-01-13_22-58-29.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/state_logs/uav_state_data_2025-01-13_22-58-49.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/state_logs/uav_state_data_2025-01-13_22-59-03.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/state_logs/uav_state_data_2025-01-14_22-16-15.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/state_logs/uav_state_data_2025-01-14_22-22-19.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/state_logs/uav_state_data_2025-01-15_15-48-51.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/state_logs/uav_state_data_2025-01-15_15-49-12.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/state_logs/uav_state_data_2025-01-15_16-05-06.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/state_logs/uav_state_data_2025-01-15_16-17-18.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/state_logs/uav_state_data_2025-01-15_16-20-10.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/state_logs/uav_state_data_2025-01-15_17-05-06.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/state_logs/uav_state_data_2025-01-15_17-08-50.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/state_logs/uav_state_data_2025-01-15_17-26-45.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/state_logs/uav_state_data_2025-01-15_17-28-18.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/state_logs/uav_state_data_2025-01-15_17-29-52.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/state_logs/uav_state_data_2025-01-15_17-31-49.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/state_logs/uav_state_data_2025-01-15_17-38-31.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/state_logs/uav_state_data_2025-01-15_17-42-13.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/state_logs/uav_state_data_2025-01-15_17-46-09.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/state_logs/uav_state_data_2025-01-15_17-52-59.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/state_logs/uav_state_data_2025-01-15_18-21-43.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/state_logs/uav_state_data_2025-01-15_18-26-09.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/state_logs/uav_state_data_2025-01-16_00-11-06.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/state_logs/uav_state_data_2025-01-16_00-21-47.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/qt_main.py" beforeDir="false" afterPath="$PROJECT_DIR$/qt_main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils/UAV.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/UAV.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils/UAV_controller.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/UAV_controller.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BotSort_tracker/tracker/bot_sort.py" beforeDir="false" afterPath="$PROJECT_DIR$/BotSort_tracker/tracker/bot_sort.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BotSort_tracker/tracker/gmc.py" beforeDir="false" afterPath="$PROJECT_DIR$/BotSort_tracker/tracker/gmc.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/utils/UAV_navigater.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/UAV_navigater.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils/evaluate.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/evaluate.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils/qtpage_2.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/qtpage_2.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils/threads.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/threads.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/utils.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils/widgets.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/widgets.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -124,23 +56,25 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;Python.evaluate.executor&quot;: &quot;Run&quot;,
-    &quot;Python.qt_main.executor&quot;: &quot;Run&quot;,
-    &quot;Python.qtpage_1.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
-    &quot;last_opened_file_path&quot;: &quot;E:/UAV_temp_staging/demo_code/python&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Python.evaluate.executor": "Run",
+    "Python.fly.executor": "Run",
+    "Python.processcopy.executor": "Run",
+    "Python.qt_main.executor": "Run",
+    "Python.qtpage_1.executor": "Run",
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "git-widget-placeholder": "main",
+    "last_opened_file_path": "E:/UAV_temp_staging/demo_code/python/utils",
+    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="E:\UAV_temp_staging\demo_code\python\utils" />
       <recent name="E:\UAV_temp_staging\demo_code\python\data\models" />
       <recent name="E:\UAV_temp_staging\demo_code\python" />
-      <recent name="E:\UAV_temp_staging\demo_code\python\utils" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
       <recent name="H:\UAV-temp-staging\code\demo_code\demo_code\PYTHON\python\requirements" />

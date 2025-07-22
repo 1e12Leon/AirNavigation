@@ -16,7 +16,6 @@
 <img src="utils/griffith.png" alt="Logo" width="15">, &nbsp; &nbsp;
 
 <img src="utils/hhu_text.png" alt="Logo" width="100"> &nbsp; &nbsp;  &nbsp; &nbsp; 
-
 <img src="utils/griffith_text.png" alt="Logo" width="90">
 
 \* *Equal Contribution*
@@ -36,6 +35,13 @@
 
 # Getting Started
 
+## System Requirements
+
+- Operating System: Windows 10/11
+- Python Version: 3.9
+- CUDA Toolkit: 11.3
+- Unreal Engine: 4.27
+
 ## Install
 
 - Clone this repo:
@@ -43,20 +49,27 @@
     ```bash
     git clone https://github.com/1e12Leon/AirNavigation.git
     ```
-- Create a conda virtual environment and activate it:
+- Create a Python(3.9) virtual environment and activate it:
 
     ```bash
-    conda create -n AirNavigation python=3.9 -y
-    conda activate AirNavigation
+    # Create virtual environment
+    python -m venv AirNavigation
+
+    # Activate virtual environment
+    AirNavigation\Scripts\activate
+
+    # Upgrade pip
+    python -m pip install --upgrade pip
     ```
 
-- Install `CUDA Toolkit 11.3` ([link](https://developer.nvidia.com/cuda-11.3.0-download-archive)) and `cudnn==8.2.1` [(link)](https://developer.nvidia.com/rdp/cudnn-archive), then install `torch==1.10.1+cu113` and `torchvision==0.11.2+cu113`([link](https://pytorch.org/)):
+- Install `CUDA Toolkit 11.3` ([link](https://developer.nvidia.com/cuda-11.3.0-download-archive)) and `cudnn==8.2.1` [(link)](https://developer.nvidia.com/rdp/cudnn-archive), then install PyTorch and other dependencies:
 
     ```bash
-    conda install torchaudio cudatoolkit=11.3 -c pytorch -y
-    conda install torch-1.10.1+cu113-cp39-cp39-win_amd64.whl torchvision-0.11.2+cu113-cp39-cp39-win_amd64.whl
-    # if you prefer other cuda versions, please choose suitable pytorch versions
-    # see: https://pytorch.org/get-started/locally/
+    # Install PyTorch with CUDA support
+    pip install torch==1.10.1+cu113 torchvision==0.11.2+cu113 torchaudio==0.10.1 -f https://download.pytorch.org/whl/cu113/torch_stable.html
+
+    # Install other dependencies
+    pip install -r requirements.txt
     ```
 
 - Install UE4.27([link](https://www.unrealengine.com)), configure the airsim plugin([link](https://zhuanlan.zhihu.com/p/618440744)), and open the map initialization.
@@ -68,11 +81,11 @@
 1. Configure `settings/map.json` with your map settings:
    ```json
    {
-       "map": "Brushify",
-       "start_map_batfile": "E:\\UAV_temp_staging\\demo_code\\python\\Shell\\Brushify.bat",
+       "map": "default_map",
+       "start_map_batfile": "absolute_path_to_your_map_batfile",
        "map_list": [
-           "Brushify",
-           "beach"
+           "map1",
+           "map2"
        ]
    }
    ```
@@ -81,9 +94,9 @@
    ```batch
    @echo off
    REM Launch Unreal Engine project with map Brushify
-   REM Note: Replace E:\UE4\UE_4.27\ with your Unreal Engine root directory
-   REM Note: Replace E:\UAV_temp_staging\UE-project\UAV\UAV.uproject with your project path
-   E:\UE4\UE_4.27\Engine\Binaries\Win64\UE4Editor.exe "E:\UAV_temp_staging\UE-project\UAV\UAV.uproject" -game -windowed -ResX=1280 -ResY=720
+   REM 
+   REM 
+   absolute_path_to_your_unreal_engine_root_directory\Engine\Binaries\Win64\UE4Editor.exe "absolute_path_to_your_project_path\UAV.uproject" -game -windowed -ResX=1280 -ResY=720
    ```
 
 ### Gemini API Configuration
