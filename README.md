@@ -10,6 +10,7 @@
 <img src="utils/hhu.jpg" alt="Logo" width="15">, &nbsp; &nbsp;
 [Fan Liu (刘凡)](https://multimodality.group/author/%E5%88%98%E5%87%A1/) ✉ 
 <img src="utils/hhu.jpg" alt="Logo" width="15">, &nbsp; &nbsp;
+
 [Shengxiang Xu (徐圣翔)](https://multimodality.group/author/%E5%BE%90%E5%9C%A3%E7%BF%94/) 
 <img src="utils/hhu.jpg" alt="Logo" width="15">, &nbsp; &nbsp;
 [Jun Zhou (周峻)](https://experts.griffith.edu.au/7205-jun-zhou) 
