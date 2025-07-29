@@ -6,7 +6,7 @@
 <img src="utils/hhu.jpg" alt="Logo" width="15">, &nbsp; &nbsp;
 [Zequan Wang (王泽权)]() *
 <img src="utils/hhu.jpg" alt="Logo" width="15">, &nbsp; &nbsp;
-[Liang Yao (姚亮)](https://multimodality.group/author/%E5%A7%9A%E4%BA%AE/) 
+[Liang Yao (姚亮)](https://1e12leon.github.io/) 
 <img src="utils/hhu.jpg" alt="Logo" width="15">, &nbsp; &nbsp;
 [Fan Liu (刘凡)](https://multimodality.group/author/%E5%88%98%E5%87%A1/) ✉ 
 <img src="utils/hhu.jpg" alt="Logo" width="15">, &nbsp; &nbsp;
@@ -32,10 +32,10 @@
 
 # News
 
-- **2025/02/11**:We construct an autonomous UAV navigation simulation system enhanced by multimodal large language models. Codes will be open-sourced at this repository.
-- **2025/03/07**:feat: add Chinese localization for white theme
-- **2025/07/06**:feat: add experimental metrics & update config/docs
 - **2025/07/22**:feat: add dataset collection & update docs
+- **2025/07/06**:feat: add experimental metrics & update config/docs
+- **2025/03/07**:feat: add Chinese localization for white theme
+- **2025/02/11**:We construct an autonomous UAV navigation simulation system enhanced by multimodal large language models. Codes will be open-sourced at this repository.
 
 # Getting Started
 
