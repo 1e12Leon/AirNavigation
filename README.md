@@ -25,7 +25,13 @@
 
 ![introduction.png](introduction.png)
 
+
+# Documentation & Experiments
+
+For detailed API documentation please refer to [`docs`](docs/index.md), and for additional supplementary experiments please see [`experiments`](experiments/).
+
 # video
+
 [bilibili](https://www.bilibili.com/video/BV1b5AeeGEm2)
 
 [youtube](https://youtube.com/watch?v=B3gYFj5jqyE)
@@ -173,7 +179,7 @@ You can change the mode by clicking the 'Change Mode' button, such as "normal", 
 - botsort: This mode enables the UAV to detect objects in the environment, enter the id to track the object.
 - track: This mode enables the UAV to find the object and track it.
 
-### Dataset Collection
+## Dataset Collection
 
 The system includes an automated dataset collection feature that captures images and generates annotations:
 
