@@ -127,7 +127,7 @@ class Predictor(BaseEngine):
 class Navigator(UAVController):
     def __init__(self):
         super().__init__()
-        self.__targets = []                  # 存放检测到的目标
+        self.__targets = []                   # 存放检测到的目标
         self.__camera_rasing = False         # 是否旋转相机
         self.__locating = False              # 定位模式(判断是否距离目标较近)
         self.__botsort_locating = False      # BoT-SORT 定位模式(判断是否距离目标较近)

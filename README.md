@@ -36,6 +36,7 @@
 - **2025/03/07**:feat: add Chinese localization for white theme
 - **2025/07/06**:feat: add experimental metrics & update config/docs
 - **2025/07/22**:feat: add dataset collection & update docs
+- **2025/09/04**:feat: new UI
 
 # Getting Started
 
@@ -110,6 +111,12 @@
    ```python
    GEMINI_API_KEY = "your_api_key_here"
    ```
+
+## Start
+
+```bash
+python qt_main2.py
+```
 
 # Instructions
 

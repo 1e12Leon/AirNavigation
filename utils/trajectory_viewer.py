@@ -22,7 +22,10 @@ class TrajectoryViewer(QWidget):
         self.y_data = []
         self.z_data = []
         self.tracking_active = True
+        self.tracking = False  # 添加tracking属性
         self.current_view = '3D'  # 默认3D视图
+        self.timer = QTimer(self)  # 初始化timer
+        self.timer.timeout.connect(self.update_plot)  # 连接信号到更新函数
         self.setup_ui()
         
     def add_point(self, x, y, z):
@@ -30,6 +33,7 @@ class TrajectoryViewer(QWidget):
         self.x_data.append(x)
         self.y_data.append(y)
         self.z_data.append(-z)  # 由于UE为NED坐标系，这里Z轴需要反转
+        # print(f"TrajectoryViewer.add_point: Added point ({x:.2f}, {y:.2f}, {-z:.2f}), total points: {len(self.x_data)}")
         self.update_plot()
         
     def toggle_tracking(self):
@@ -47,33 +51,45 @@ class TrajectoryViewer(QWidget):
         self.z_data = []
         self.setup_plot()
         self.update_plot()
-        
+    
     def save_trajectory(self):
-        """保存轨迹数据"""
-        if len(self.x_data) == 0:
-            return
-            
+        """保存轨迹图"""
+        save_path = "data/trajectory_images"
+        if not os.path.exists(save_path):
+            os.makedirs(save_path)
         try:
-            now = datetime.datetime.now()
-            filename = f"trajectory_{now.strftime('%Y%m%d_%H%M%S')}.csv"
-            current_dir = os.path.dirname(os.path.abspath(__file__))
-            base_dir = os.path.dirname(current_dir)
-            save_path = os.path.join(base_dir, "data", "trajectories")
-            
-            # 确保目录存在
-            os.makedirs(save_path, exist_ok=True)
-            
-            full_path = os.path.join(save_path, filename)
-            
-            with open(full_path, 'w', newline='') as f:
-                writer = csv.writer(f)
-                writer.writerow(['X', 'Y', 'Z'])
-                for i in range(len(self.x_data)):
-                    writer.writerow([self.x_data[i], self.y_data[i], self.z_data[i]])
-                    
-            print(f"Trajectory saved to {full_path}")
+            filename = f"trajectory_{self.current_view}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+            self.figure.savefig(f"{save_path}/{filename}")
+            QMessageBox.information(self, "Save Successful", f"Trajectory has been saved as {filename}")
         except Exception as e:
             print(f"Error saving trajectory: {e}")
+
+    # def save_trajectory(self):
+    #     """保存轨迹数据"""
+    #     if len(self.x_data) == 0:
+    #         return
+            
+    #     try:
+    #         now = datetime.datetime.now()
+    #         filename = f"trajectory_{now.strftime('%Y%m%d_%H%M%S')}.csv"
+    #         current_dir = os.path.dirname(os.path.abspath(__file__))
+    #         base_dir = os.path.dirname(current_dir)
+    #         save_path = os.path.join(base_dir, "data", "trajectories")
+            
+    #         # 确保目录存在
+    #         os.makedirs(save_path, exist_ok=True)
+            
+    #         full_path = os.path.join(save_path, filename)
+            
+    #         with open(full_path, 'w', newline='') as f:
+    #             writer = csv.writer(f)
+    #             writer.writerow(['X', 'Y', 'Z'])
+    #             for i in range(len(self.x_data)):
+    #                 writer.writerow([self.x_data[i], self.y_data[i], self.z_data[i]])
+                    
+    #         print(f"Trajectory saved to {full_path}")
+    #     except Exception as e:
+    #         print(f"Error saving trajectory: {e}")
 
     def setup_ui(self):
         layout = QVBoxLayout(self)
@@ -242,8 +258,19 @@ class TrajectoryViewer(QWidget):
 
     def start(self):
         """开始轨迹记录"""
+        # print(f"TrajectoryViewer.start: Starting trajectory recording")
         self.tracking = True
-        self.timer.start(100)  # 100ms更新一次
+        try:
+            if hasattr(self, 'timer') and self.timer is not None:
+                self.timer.start(100)  # 100ms更新一次
+                # print(f"TrajectoryViewer.start: Timer started with 100ms interval")
+            else:
+                pass
+                # print(f"TrajectoryViewer.start: ERROR - Timer not initialized!")
+        except Exception as e:
+            # print(f"TrajectoryViewer.start: Error starting timer: {e}")
+            import traceback
+            traceback.print_exc()
 
     def stop(self):
         """停止轨迹记录"""
@@ -252,55 +279,67 @@ class TrajectoryViewer(QWidget):
 
     def update_plot(self):
         """更新绘图"""
+        # print(f"TrajectoryViewer.update_plot: Called with tracking_active={self.tracking_active}, points={len(self.x_data)}")
         if not self.tracking_active or len(self.x_data) == 0:
+            print(f"TrajectoryViewer.update_plot: Skipping update - tracking_active={self.tracking_active}, points={len(self.x_data)}")
             return
-            
-        if self.current_view == '3D':
-            # 清除当前图形
-            self.ax.clear()
-            self.ax.set_title(f'UAV Flight Trajectory - {self.current_view} View')
-            self.ax.set_xlabel('X (m)')
-            self.ax.set_ylabel('Y (m)')
-            self.ax.set_zlabel('Z (m)')
-            self.ax.set_box_aspect([1, 1, 1])
-            
-            # 绘制3D轨迹
-            self.ax.plot3D(self.x_data, self.y_data, self.z_data, 'blue')
-            
-            # 绘制当前位置
-            if len(self.x_data) > 0:
-                self.ax.scatter(self.x_data[-1], self.y_data[-1], self.z_data[-1], 
-                              color='red', s=100, marker='o')
+
+        try:
+            if self.current_view == '3D':
+                # 清除当前图形
+                self.ax.clear()
+                self.ax.set_title(f'UAV Flight Trajectory - {self.current_view} View')
+                self.ax.set_xlabel('X (m)')
+                self.ax.set_ylabel('Y (m)')
+                self.ax.set_zlabel('Z (m)')
+                self.ax.set_box_aspect([1, 1, 1])
+                
+                # 绘制3D轨迹
+                self.ax.plot3D(self.x_data, self.y_data, self.z_data, 'blue')
+                # print(f"TrajectoryViewer.update_plot: Plotted 3D trajectory with {len(self.x_data)} points")
+                
+                # 绘制当前位置
+                if len(self.x_data) > 0:
+                    self.ax.scatter(self.x_data[-1], self.y_data[-1], self.z_data[-1], 
+                                  color='red', s=100, marker='o')
             else:
                 # 清除当前图形
                 self.ax.clear()
                 self.ax.set_title(f'UAV Flight Trajectory - {self.current_view} View')
                 self.ax.grid(True)
                 self.ax.set_aspect('equal')
-            
-            if self.current_view == 'XY':
-                self.ax.set_xlabel('X (m)')
-                self.ax.set_ylabel('Y (m)')
-                self.ax.plot(self.x_data, self.y_data, 'blue')
-                if len(self.x_data) > 0:
-                    self.ax.scatter(self.x_data[-1], self.y_data[-1], 
-                                  color='red', s=100, marker='o')
+                
+                if self.current_view == 'XY':
+                    self.ax.set_xlabel('X (m)')
+                    self.ax.set_ylabel('Y (m)')
+                    self.ax.plot(self.x_data, self.y_data, 'blue')
+                    # print(f"TrajectoryViewer.update_plot: Plotted XY trajectory with {len(self.x_data)} points")
+                    if len(self.x_data) > 0:
+                        self.ax.scatter(self.x_data[-1], self.y_data[-1], 
+                                      color='red', s=100, marker='o')
                 elif self.current_view == 'XZ':
                     self.ax.set_xlabel('X (m)')
                     self.ax.set_ylabel('Z (m)')
-                self.ax.plot(self.x_data, self.z_data, 'blue')
-                if len(self.x_data) > 0:
-                    self.ax.scatter(self.x_data[-1], self.z_data[-1], 
-                                  color='red', s=100, marker='o')
-            elif self.current_view == 'YZ':
-                self.ax.set_xlabel('Y (m)')
-                self.ax.set_ylabel('Z (m)')
-                self.ax.plot(self.y_data, self.z_data, 'blue')
-                if len(self.y_data) > 0:
-                    self.ax.scatter(self.y_data[-1], self.z_data[-1], 
-                                  color='red', s=100, marker='o')
-            
+                    self.ax.plot(self.x_data, self.z_data, 'blue')
+                    # print(f"TrajectoryViewer.update_plot: Plotted XZ trajectory with {len(self.x_data)} points")
+                    if len(self.x_data) > 0:
+                        self.ax.scatter(self.x_data[-1], self.z_data[-1], 
+                                      color='red', s=100, marker='o')
+                elif self.current_view == 'YZ':
+                    self.ax.set_xlabel('Y (m)')
+                    self.ax.set_ylabel('Z (m)')
+                    self.ax.plot(self.y_data, self.z_data, 'blue')
+                    # print(f"TrajectoryViewer.update_plot: Plotted YZ trajectory with {len(self.y_data)} points")
+                    if len(self.y_data) > 0:
+                        self.ax.scatter(self.y_data[-1], self.z_data[-1], 
+                                      color='red', s=100, marker='o')
+                
             self.canvas.draw()
+            # print(f"TrajectoryViewer.update_plot: Canvas updated")
+        except Exception as e:
+            # print(f"TrajectoryViewer.update_plot: Error updating plot: {e}")
+            import traceback
+            traceback.print_exc()
 
     def _draw_direction_arrow(self, last_pos, current_pos):
         """绘制方向箭头"""
@@ -335,29 +374,25 @@ class TrajectoryViewer(QWidget):
 
     def _adjust_plot_limits(self):
         """调整显示范围"""
-        if not self.trajectory_positions:
+        if len(self.x_data) == 0:
             return
             
-        positions_array = np.array(self.trajectory_positions)
         margin = 10  # 10米边距
         
         if self.current_view == '3D':
-            self.ax.set_xlim([positions_array[:, 0].min() - margin, 
-                            positions_array[:, 0].max() + margin])
-            self.ax.set_ylim([positions_array[:, 1].min() - margin, 
-                            positions_array[:, 1].max() + margin])
-            self.ax.set_zlim([positions_array[:, 2].min() - margin, 
-                            positions_array[:, 2].max() + margin])
+            self.ax.set_xlim([min(self.x_data) - margin, max(self.x_data) + margin])
+            self.ax.set_ylim([min(self.y_data) - margin, max(self.y_data) + margin])
+            self.ax.set_zlim([min(self.z_data) - margin, max(self.z_data) + margin])
         else:
             if self.current_view == 'XY':
-                x_data, y_data = positions_array[:, 0], positions_array[:, 1]
+                x_data, y_data = self.x_data, self.y_data
             elif self.current_view == 'XZ':
-                x_data, y_data = positions_array[:, 0], positions_array[:, 2]
+                x_data, y_data = self.x_data, self.z_data
             else:  # YZ
-                x_data, y_data = positions_array[:, 1], positions_array[:, 2]
+                x_data, y_data = self.y_data, self.z_data
                 
-            self.ax.set_xlim([x_data.min() - margin, x_data.max() + margin])
-            self.ax.set_ylim([y_data.min() - margin, y_data.max() + margin])
+            self.ax.set_xlim([min(x_data) - margin, max(x_data) + margin])
+            self.ax.set_ylim([min(y_data) - margin, max(y_data) + margin])
 
     def change_view(self, view):
         """切换视图"""

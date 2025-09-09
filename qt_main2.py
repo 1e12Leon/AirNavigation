@@ -29,7 +29,7 @@ def main():
     create_dirs()
     
     # 创建并显示UI
-    window = ModernDroneUI()
+    window = ModernDroneUI(fps = 50)
     
     # 应用深色主题
     # window.apply_dark_theme()
