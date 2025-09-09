@@ -1,4 +1,4 @@
-## UAV Control and Telemetry API (Wrapper Only)
+## UAV Control and Telemetry API
 
 ### Overview
 This document describes our wrapper surface only (no raw simulator APIs). `UAVController` exposes a stable, user-friendly interface for connection, flight, imaging, camera control, telemetry, and XML logging/monitoring.

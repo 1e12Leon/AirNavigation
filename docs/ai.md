@@ -1,4 +1,4 @@
-## Gemini Command Conversion API (Wrapper Only)
+## Gemini Command Conversion API
 
 ### Overview
 Wrapper that converts natural language into shell-like UAV commands for this project. It maintains a lightweight chat session and outputs a plain command string (backticks removed) or `None` on failure.

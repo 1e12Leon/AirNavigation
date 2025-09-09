@@ -14,7 +14,13 @@ The process works in three simple steps:
 3. **Execution** – Adjust UAV step size, speed, and attitude until it hovers above the object a
 
 
-## Results
+## Algorithm Performance Test Results
+
+Flight Distance: Distance from start to object,
+Localization Error: Euclidean distance to ground truth,
+Attitude Adjustments: Increments by 1 whenever pitch, roll, or yaw changes $ \geq $ 0.1 in a measurement,
+Localization Efficiency: Flight Distance / Time,
+
 
 | Model       | Scenario  | Weather | Flight Dist. (m) | Loc. Error (m) | Att. Adj. | Time (s) | Loc. Eff. (m/s) |
 |-------------|-----------|---------|------------------|----------------|-----------|----------|-----------------|
@@ -40,14 +46,13 @@ The process works in three simple steps:
 |             |           | Foggy   | 14.92            | 1.25           | 33        | 25.17    | 0.69            |
 |             |           | Sunny   | 25.96            | 1.21           | 40        | 41.22    | 0.63            |
 |             |           | Foggy   | 24.91            | 1.74           | 56        | 44.57    | 0.55            |
-|             |           | Fail    | -                | -              | -         | -        | -               |
 
 **Explanation:**  
-This table shows how the system API handles multiple scenarios. Results verify that the API can repeatedly collect consistent metrics across weather and map variations, ensuring stability while providing a demo of how to benchmark different detection models.
+Results verify that the API can repeatedly collect consistent metrics across weather and map variations, ensuring stability while providing a demo of how to benchmark different detection models.
 
----
 
-## Results
+
+## Overall Model Parameters and Performance of YOLOv7 and YOLOv7-Tiny
 
 | Model       | Avg. Loc. Error (m) | Model Size (MB) | FPS   | Success Rate (%) |
 |-------------|----------------------|-----------------|-------|------------------|
@@ -57,9 +62,9 @@ This table shows how the system API handles multiple scenarios. Results verify t
 **Explanation:**  
 This table highlights the trade-off between accuracy and efficiency. It demonstrates how to integrate different models via the API and observe performance differences in terms of precision, speed, and resource usage.
 
----
 
-## Results
+
+## Multi-source Module Ablation Results
 
 | Object Tracking | Speed Control | Step-size Control | Loc. Error (m) | Time (s) |
 |-----------------|---------------|-------------------|----------------|----------|

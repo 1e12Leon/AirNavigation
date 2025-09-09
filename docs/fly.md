@@ -1,4 +1,4 @@
-## Dataset Collection API (Wrapper Only)
+## Dataset Collection API
 
 ### Overview
 WARNING: While you can collect images via the APIs in `UAVController`, using this standalone dataset collector provides faster throughput and more consistent data quality.

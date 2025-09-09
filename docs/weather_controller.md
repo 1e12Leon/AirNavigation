@@ -1,4 +1,4 @@
-## Weather Control API (Wrapper Only)
+## Weather Control API
 
 ### Overview
 Minimal wrapper to enable and adjust simulated weather. Stores the current weather type and intensity (0–100) and applies the change immediately.

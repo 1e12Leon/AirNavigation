@@ -1,4 +1,4 @@
-## UAV Switching API (Wrapper Only)
+## UAV Switching API
 
 ### Overview
 Utility helpers to switch the active UAV model by updating simulator settings, restarting the editor, and refreshing the in-memory UAV handle.

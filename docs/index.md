@@ -5,4 +5,4 @@
 - [Map management](./map_controller.md)
 - [UAV switching](./uav_changer.md)
 - [Weather control](./weather_controller.md)
-- [Gemini command conversion](./ai_config.md)
+- [Gemini command conversion](./ai.md)
