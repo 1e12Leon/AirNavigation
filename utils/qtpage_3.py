@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import (
     QGroupBox, QScrollArea, QSizePolicy, QSpacerItem, QGraphicsDropShadowEffect,
     QGridLayout
 )
-from PyQt5.QtCore import Qt, QSize, QPropertyAnimation, QEasingCurve, QEvent, QThread, QMetaObject, Q_ARG
+from PyQt5.QtCore import Qt, QSize, QPropertyAnimation, QEasingCurve, QEvent, QThread, QMetaObject, Q_ARG, QTimer
 from PyQt5.QtGui import QIcon, QPixmap, QFont, QPalette, QColor, QLinearGradient, QPainter, QPen, QPainterPath
 from PyQt5.QtGui import QImage # Added missing import
 import numpy as np # Added missing import
@@ -220,14 +220,11 @@ class CollapsiblePanel(QWidget):
         self.content_area.setWidget(content_widget)
         self.content_area.setFrameShape(QFrame.NoFrame)
         self.content_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.content_area.setObjectName("collapsibleContent")
         self.content_area.setStyleSheet("""
-            QScrollArea {
-                border: none;
-                background-color: transparent;
-            }
-            QScrollArea > QWidget > QWidget {
-                background-color: #ffffff;
-            }
+            #collapsibleContent { border: none; background: transparent; }
+            #collapsibleContent > QWidget { background: transparent; }
+            #collapsibleContent QWidget#qt_scrollarea_viewport { background: transparent; }
         """)
         
         # 设置内容区域的最小高度
@@ -328,6 +325,167 @@ class CollapsiblePanel(QWidget):
         # 发射信号通知父容器重新调整布局
         if hasattr(self.parent(), "adjust_layout"):
             self.parent().adjust_layout()
+
+# ---------------- Avatar helpers ----------------
+def load_or_make_user(size=40) -> QPixmap:
+    path = "icons/user.png"
+    if os.path.exists(path):
+        pm = QPixmap(path)
+        if not pm.isNull():
+            return pm.scaled(size, size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+    # fallback: 画一个蓝底白人的圆头像
+    pm = QPixmap(size, size)
+    pm.fill(Qt.transparent)
+    p = QPainter(pm); p.setRenderHint(QPainter.Antialiasing, True)
+    p.setBrush(QColor(74, 144, 226)); p.setPen(Qt.NoPen); p.drawEllipse(0, 0, size, size)
+    p.setBrush(QColor("white"))
+    r = size
+    p.drawEllipse(int(0.35*r), int(0.18*r), int(0.30*r), int(0.30*r))
+    p.drawRoundedRect(int(0.22*r), int(0.48*r), int(0.56*r), int(0.38*r), 10, 10)
+    p.end()
+    return pm
+
+def load_or_make_drone(size=40) -> QPixmap:
+    path = "icons/drone.png"
+    if os.path.exists(path):
+        pm = QPixmap(path)
+        if not pm.isNull():
+            return pm.scaled(size, size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+    # fallback: 画一个简易无人机
+    pm = QPixmap(size, size)
+    pm.fill(Qt.transparent)
+    p = QPainter(pm); p.setRenderHint(QPainter.Antialiasing, True)
+    arm = QColor(90, 140, 170); body = QColor(120, 170, 200); rotor = QColor(70, 120, 150)
+    p.setPen(Qt.NoPen)
+    p.setBrush(arm);  p.drawRect(int(0.1*size), int(0.45*size), int(0.8*size), int(0.10*size))
+    p.drawRect(int(0.45*size), int(0.1*size), int(0.10*size), int(0.8*size))
+    p.setBrush(body); p.drawRoundedRect(int(0.25*size), int(0.35*size), int(0.50*size), int(0.30*size), 4, 4)
+    p.setBrush(rotor)
+    for cx, cy in [(0.15,0.15),(0.85,0.15),(0.15,0.85),(0.85,0.85)]:
+        x = int(cx*size); y = int(cy*size); r = int(0.08*size)
+        p.drawEllipse(x-r, y-r, 2*r, 2*r)
+    p.end()
+    return pm
+
+# ---------------- Chat bubble ----------------
+class ChatBubble(QLabel):
+    def __init__(self, text: str, bg: QColor, fg: QColor, max_width: int):
+        super().__init__(text)
+        self.setWordWrap(True)
+        self.setTextInteractionFlags(Qt.TextSelectableByMouse | Qt.LinksAccessibleByMouse)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum)
+        self.setStyleSheet(
+            "QLabel {"
+            f"background-color: rgba({bg.red()},{bg.green()},{bg.blue()},{bg.alpha()});"
+            f"color: rgba({fg.red()},{fg.green()},{fg.blue()},{fg.alpha()});"
+            "border-radius: 8px;"
+            "padding: 10px;"
+            "font-family: 'Segoe UI', Arial, sans-serif;"
+            "font-size: 16px;"
+            "}"
+        )
+        self.setMaximumWidth(max_width)
+
+class MessageRow(QWidget):
+    def __init__(self, side: str, avatar: QPixmap, bubble: ChatBubble):
+        super().__init__()
+        lay = QHBoxLayout(self)
+        lay.setContentsMargins(0, 0, 0, 0)
+        lay.setSpacing(8)
+
+        avatar_label = QLabel()
+        avatar_label.setPixmap(avatar.scaled(40, 40, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        avatar_label.setFixedSize(QSize(40, 40))
+        avatar_label.setStyleSheet("border-radius: 20px;")
+
+        if side == "left":
+            lay.addWidget(avatar_label, 0, Qt.AlignTop)
+            lay.addWidget(bubble, 1, Qt.AlignLeft)
+        else:
+            lay.addStretch(0)
+            lay.addWidget(bubble, 1, Qt.AlignRight)
+            lay.addWidget(avatar_label, 0, Qt.AlignTop)
+
+        self.bubble = bubble  # 方便后续更新宽度
+
+# ---------------- Chat view (scroll + list of rows) ----------------
+class ChatView(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.user_avatar = load_or_make_user(40)
+        self.drone_avatar = load_or_make_drone(40)
+
+        root = QVBoxLayout(self)
+        root.setContentsMargins(0, 0, 0, 0)
+        root.setSpacing(0)
+
+        self.scroll = QScrollArea()
+        self.scroll.setWidgetResizable(True)
+        self.scroll.setFrameShape(QFrame.NoFrame)
+        self.scroll.setObjectName("chatScroll")
+        self.scroll.setStyleSheet("""
+            #chatScroll { background: #f7f8fa; border: 1px solid #e0e0e0; border-radius: 8px; }
+            #chatScroll > QWidget { background: #f7f8fa; }
+            #chatScroll QWidget#qt_scrollarea_viewport { background: #f7f8fa; }
+        """)
+
+        self.container = QWidget()
+        self.container.setStyleSheet("background: #f7f8fa;") 
+        self.vbox = QVBoxLayout(self.container)
+        self.vbox.setContentsMargins(10, 10, 10, 10)
+        self.vbox.setSpacing(10)
+        self.vbox.addStretch()
+
+        self.scroll.setWidget(self.container)
+        root.addWidget(self.scroll, 1)
+
+        self._bubbles = []
+
+    def _append(self, text: str, side: str, role: str):
+        vw = self.scroll.viewport().width()
+        maxw = int(vw * 0.92)
+        if role == "user":
+            bubble = ChatBubble(text, QColor(74, 144, 226), QColor("white"), maxw)
+            avatar = self.user_avatar
+        else:
+            bubble = ChatBubble(text, QColor("white"), QColor(51, 51, 51), maxw)
+            bubble.setStyleSheet(bubble.styleSheet() + "border: 1px solid #e6e9ef;")
+            avatar = self.drone_avatar
+
+        bubble.setMaximumWidth(maxw)
+
+        row = MessageRow(side, avatar, bubble)
+        self.vbox.insertWidget(self.vbox.count() - 1, row)
+        self._bubbles.append(bubble)
+        QTimer.singleShot(0, self.scroll_to_bottom)
+
+    def append_user_message(self, text: str):
+        if text:
+            self._append(text, "right", "user")
+
+    def append_drone_message(self, text: str):
+        if text:
+            self._append(text, "left", "drone")
+
+    def clear(self):
+        while self.vbox.count():
+            item = self.vbox.takeAt(0)
+            w = item.widget()
+            if w is not None:
+                w.deleteLater()
+        self.vbox.addStretch()
+        self._bubbles.clear()
+
+    def scroll_to_bottom(self):
+        bar = self.scroll.verticalScrollBar()
+        bar.setValue(bar.maximum())
+
+    def resizeEvent(self, e):
+        super().resizeEvent(e)
+        vw = self.scroll.viewport().width()
+        maxw = int(vw * 0.92)
+        for b in self._bubbles:
+            b.setMaximumWidth(maxw)
 
 class ModernDroneUI(QMainWindow):
     """现代化的无人机控制界面"""
@@ -748,11 +906,8 @@ class ModernDroneUI(QMainWindow):
         self.setStyleSheet(self.BLUE_THEME)
     
     def update_console(self, text):
-        """更新控制台显示"""
-        current_thread = QThread.currentThread().objectName() or "MainThread"
-        debug_info = f"{text}"
-        self.console_output.append(debug_info)
-        self.console_output.ensureCursorVisible()  # 自动滚动到底部
+        """Display worker output as drone messages"""
+        self.append_system_message(text)
 
     def set_ui(self):
         """设置UI布局"""
@@ -792,6 +947,9 @@ class ModernDroneUI(QMainWindow):
         
         # 添加分割器到主布局
         main_layout.addWidget(splitter)
+        
+        self.chat_panel.toggle_collapsed()
+        self.chat_panel.toggle_collapsed()
 
 
     def capture(self):
@@ -901,7 +1059,7 @@ class ModernDroneUI(QMainWindow):
 
             # Update initial state in the main thread
             self.thread = EvaluationThread(log_data)
-            self.thread.evaluation_signal.connect(self.update_status_text)
+            self.thread.evaluation_signal.connect(self.append_system_message)
             self.thread.start()
 
             print("Successfully stopped recording state!")
@@ -910,7 +1068,7 @@ class ModernDroneUI(QMainWindow):
             self.fpv_uav.start_logging(self.record_interval)
 
             # self.btn_record_state.setText("Stop Recording")
-            self.update_status_text("Stop Recording...")
+            self.append_system_message("Stop Recording...")
             print("Successfully started recording state!")
     
     def toggle_monitoring(self):
@@ -922,7 +1080,7 @@ class ModernDroneUI(QMainWindow):
             if self.monitoring_thread:
                 self.monitoring_thread.stop()
                 #self.monitoring_thread.wait()
-            self.update_status_text("Monitoring paused")
+            self.append_system_message("Monitoring paused")
         else:
             # Start monitoring
             self.monitoring_flag = True
@@ -930,9 +1088,9 @@ class ModernDroneUI(QMainWindow):
 
             # Create and start monitoring thread
             self.monitoring_thread = MonitoringThread(self.fpv_uav)
-            self.monitoring_thread.monitoring_signal.connect(self.update_status_text)
+            self.monitoring_thread.monitoring_signal.connect(self.append_system_message)
             self.monitoring_thread.start()
-            self.update_status_text("Monitoring started")
+            self.append_system_message("Monitoring started")
 
     def export_targets(self):
         """Export information of located targets and open with notepad"""
@@ -954,35 +1112,34 @@ class ModernDroneUI(QMainWindow):
         try: 
             collect_dataset(self.fpv_uav.get_control_client(), self.fpv_uav.map_controller.get_map_name())
         except Exception as e:
-            self.update_status_text(f"Data collection failed: {e}")
+            self.append_system_message(f"Data collection failed: {e}")
     
     def show_instructions(self):
         """Show help window"""
         help_window = HelpWindow(self)  # Create help window
         help_window.exec_()  # Show window modally
     
-    def update_status_text(self, text):
-        """Update status text"""
-        self.console_output.append(text)
-    
     def send_command(self):
-        """Send command"""
+        """Send command and display in chat"""
         command = self.cmd_input.text()
         if command:
-            self.update_status_text(f"> {command}")
+            # Display user message
+            self.append_user_message(command)
             self.cmd_input.clear()
-            # Here can add command processing logic
+            
+            # Process command with command worker
             QMetaObject.invokeMethod(
                 self.command_worker,
                 'process_command',
                 Qt.QueuedConnection,
-                Q_ARG(str, command)  # 明确指定参数类型
+                Q_ARG(str, command)
             )
     
     def clear_command_history(self):
-        """Clear command history"""
-        self.console_output.clear()
-    
+        """Clear chat history and re-initialize welcome messages"""
+        if hasattr(self, "chat_view"):
+            self.chat_view.clear()
+
     def create_left_panel(self):
         """Create left control panel"""
         left_panel = RoundedFrame(radius=12, bg_color="#f8f9fa", border_color="#e9ecef")
@@ -1002,7 +1159,6 @@ class ModernDroneUI(QMainWindow):
         # Create scroll area
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
-        scroll_area.setFrameShape(QFrame.NoFrame)
         scroll_content = QWidget()
         scroll_layout = QVBoxLayout(scroll_content)
         scroll_layout.setSpacing(12)
@@ -1360,54 +1516,121 @@ class ModernDroneUI(QMainWindow):
         return CollapsiblePanel("Real-time Trajectory", trajectory_content, expanded=True)
     
     def create_chat_panel(self):
-        """创建聊天控制台面板"""
-        # 创建内容部件
+        """Create chat console panel in WeChat style (Qt widgets, no HTML)"""
         chat_content = QWidget()
         chat_layout = QVBoxLayout(chat_content)
+        
         chat_layout.setContentsMargins(10, 10, 10, 10)
-        
-        # 聊天输出区域 - 设置为可扩展
-        self.console_output = QTextEdit()
-        self.console_output.setReadOnly(True)
-        self.console_output.setObjectName("consoleOutput")
-        self.console_output.setMinimumHeight(200)
-        self.console_output.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        chat_layout.addWidget(self.console_output, 1)  # 设置拉伸因子为1，使其可扩展
-        
-        # 输入框和按钮布局
+        chat_layout.setSpacing(8)
+
+        # ---- Chat view ----
+        self.chat_view = ChatView()
+        chat_layout.addWidget(self.chat_view, 1)
+
+        # ---- Input row ----
         input_layout = QHBoxLayout()
-        
-        # 输入框
+
         input_container = QVBoxLayout()
         self.cmd_input = QLineEdit()
         self.cmd_input.setPlaceholderText("Enter command or message...")
         self.cmd_input.setObjectName("commandInput")
+        self.cmd_input.returnPressed.connect(self.send_command)
         input_container.addWidget(self.cmd_input)
         input_layout.addLayout(input_container, 1)
-        
-        # 按钮区域 - 垂直布局，Clear在上，Send在下
+
         button_container = QVBoxLayout()
         button_container.setSpacing(5)
-        
+
         self.clear_button = QPushButton("Clear")
         self.clear_button.setObjectName("smallButton")
         self.clear_button.setFixedWidth(80)
         self.clear_button.clicked.connect(self.clear_command_history)
+        self.clear_button.setFocusPolicy(Qt.NoFocus)
         button_container.addWidget(self.clear_button)
-        
+
         self.send_button = QPushButton("Send")
         self.send_button.setObjectName("smallButton")
         self.send_button.setFixedWidth(80)
         self.send_button.clicked.connect(self.send_command)
         self.send_button.setFocusPolicy(Qt.NoFocus)
         button_container.addWidget(self.send_button)
-        
+
         input_layout.addLayout(button_container)
         chat_layout.addLayout(input_layout)
-        
-        # 创建可折叠面板
+
         return CollapsiblePanel("Flight Status", chat_content, expanded=True)
-    
+
+    def append_user_message(self, message):
+        if not message:
+            return
+        # 直接走 ChatView
+        self.chat_view.append_user_message(message)
+
+    def append_system_message(self, message):
+        if not message:
+            return
+        self.chat_view.append_drone_message(message)
+
+    def create_user_icon(self):
+        """Create a simple user icon"""
+        try:
+            # Ensure icons directory exists
+            os.makedirs("icons", exist_ok=True)
+            
+            # Create a simple user icon (blue circle with user silhouette)
+            from PIL import Image, ImageDraw
+            
+            # Create a blank image with transparent background
+            img = Image.new('RGBA', (200, 200), (0, 0, 0, 0))
+            draw = ImageDraw.Draw(img)
+            
+            # Draw circle background
+            draw.ellipse((0, 0, 200, 200), fill=(100, 149, 237))
+            
+            # Draw user silhouette (head and body)
+            draw.ellipse((70, 30, 130, 90), fill=(255, 255, 255))  # Head
+            draw.ellipse((50, 100, 150, 220), fill=(255, 255, 255))  # Body (partial)
+            
+            # Save the image
+            img.save("icons/user.png")
+            
+        except Exception as e:
+            print(f"Error creating user icon: {e}")
+
+    def copy_drone_icon(self):
+        """Copy existing drone icon or create a simple one"""
+        try:
+            # Ensure icons directory exists
+            os.makedirs("icons", exist_ok=True)
+            
+            # If drone.png already exists, use it
+            if os.path.exists("icons/drone.png"):
+                return
+                
+            # Otherwise create a simple drone icon
+            from PIL import Image, ImageDraw
+            
+            # Create a blank image with transparent background
+            img = Image.new('RGBA', (200, 200), (0, 0, 0, 0))
+            draw = ImageDraw.Draw(img)
+            
+            # Draw drone body (rectangle)
+            draw.rectangle((50, 80, 150, 120), fill=(70, 130, 180))
+            
+            # Draw drone arms
+            draw.rectangle((30, 90, 170, 110), fill=(70, 130, 180))
+            draw.rectangle((90, 30, 110, 170), fill=(70, 130, 180))
+            
+            # Draw propellers
+            for x, y in [(30, 30), (30, 170), (170, 30), (170, 170)]:
+                draw.ellipse((x-10, y-10, x+10, y+10), fill=(50, 100, 150))
+            
+            # Save the image
+            img.save("icons/drone.png")
+            
+        except Exception as e:
+            print(f"Error creating drone icon: {e}")
+
     def adjust_right_layout(self):
         """调整右侧面板布局"""
         # 清除所有布局项
@@ -1625,10 +1848,6 @@ class ModernDroneUI(QMainWindow):
 
         print(self.fpv_uav.map_controller.get_map_name())
         print(self.fpv_uav.get_name())
-
-        self.status_panel.toggle_collapsed()
-        self.trajectory_panel.toggle_collapsed()
-        self.chat_panel.toggle_collapsed()
 
         # Since this map is large, it needs to wait for a while before starting to connect to the drone
         LoadingDialog.load_with_dialog(40, self.after_loading_map)
