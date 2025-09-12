@@ -230,7 +230,8 @@ class CommandWorker(QObject):
                     self.output_received.emit("Command conversion failure")
                     return
 
-                self.output_received.emit(f"Converted command: {command}")
+                self.output_received.emit(f"{command}")
+                # self.output_received.emit(f"Converted command: {command}")
 
                 args = self.command_parser.parse_command(command)
                 if not args:
@@ -238,7 +239,7 @@ class CommandWorker(QObject):
                     return
 
                 if self.command_executor.execute_command(args):
-                    self.output_received.emit("\nThe system exits safely")
+                    self.output_received.emit("The system exits safely")
                     self.finished.emit()
 
             except Exception as e:

@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import QApplication
 from utils.qtpage_3 import ModernDroneUI
 
 def create_dirs():
-    """创建必要的目录"""
+    """create diretories"""
     dirs = [
         "data",
         "data/capture_imgs",
@@ -22,20 +22,12 @@ def create_dirs():
         os.makedirs(d, exist_ok=True)
 
 def main():
-    """主函数"""
+    """main"""
     app = QApplication(sys.argv)
     
-    # 创建必要的目录
     create_dirs()
     
-    # 创建并显示UI
     window = ModernDroneUI(fps = 50)
-    
-    # 应用深色主题
-    # window.apply_dark_theme()
-    
-    # 应用蓝色主题
-    # window.apply_blue_theme()
     
     window.show()
     sys.exit(app.exec_())

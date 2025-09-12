@@ -25,10 +25,10 @@ from utils.dialogs import LoadingDialog, HelpWindow
 from utils.threads import EvaluationThread,MonitoringThread, MoveThread
 from utils.fly import collect_dataset
 
-# 导入轨迹查看器组件
+# Import the trajectory viewer component
 from utils.trajectory_viewer import TrajectoryViewer
 
-# 根据当前键盘中控制无人机方向的按键计算无人机飞行速度
+# Calculate the flight speed of the unmanned aerial vehicle based on the key on the current keyboard that controls the direction of the unmanned aerial vehicle
 def calculate_velocity(velocity_value, direction_vector: list):
     if len(direction_vector) != 3:
         return 0, 0, 0
@@ -54,14 +54,14 @@ def calculate_velocity(velocity_value, direction_vector: list):
     return v_front, v_right, vz
 
 class RoundedFrame(QFrame):
-    """自定义圆角边框框架"""
+    """Custom rounded corner border frame"""
     def __init__(self, parent=None, radius=10, bg_color="#ffffff", border_color="#e0e0e0", shadow=True):
         super().__init__(parent)
         self.radius = radius
         self.bg_color = bg_color
         self.border_color = border_color
         
-        # 设置样式
+        # Set style
         self.setObjectName("roundedFrame")
         self.setStyleSheet(f"""
             #roundedFrame {{
@@ -71,7 +71,7 @@ class RoundedFrame(QFrame):
             }}
         """)
         
-        # 添加阴影效果
+        # Add shadow effect
         if shadow:
             shadow_effect = QGraphicsDropShadowEffect(self)
             shadow_effect.setBlurRadius(15)
@@ -80,16 +80,16 @@ class RoundedFrame(QFrame):
             self.setGraphicsEffect(shadow_effect)
 
 class GradientButton(QPushButton):
-    """自定义渐变按钮"""
+    """Custom gradient button"""
     def __init__(self, text="", parent=None, start_color="#4a90e2", end_color="#5cb3ff", text_color="#000000", text_size=14):
         super().__init__(text, parent)
         self.start_color = start_color
         self.end_color = end_color
         self.text_color = text_color
         self.radius = 8
-        self.text_size = text_size # 新增文本大小属性
+        self.text_size = text_size 
         
-        # 设置样式
+        # Set style
         self.setObjectName("gradientButton")
         self.setStyleSheet(f"""
             #gradientButton {{
@@ -118,27 +118,27 @@ class GradientButton(QPushButton):
         """)
     
     def paintEvent(self, event):
-        # 自定义绘制渐变背景
+        # Custom drawing of gradient background
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
         
-        # 创建渐变
+        # Create gradient
         gradient = QLinearGradient(0, 0, self.width(), 0)
         gradient.setColorAt(0, QColor(self.start_color))
         gradient.setColorAt(1, QColor(self.end_color))
         
-        # 创建圆角路径
+        # Create rounded corner path
         path = QPainterPath()
         path.addRoundedRect(0, 0, self.width(), self.height(), self.radius, self.radius)
         
-        # 填充渐变
+        # Fill with gradient
         painter.fillPath(path, gradient)
         
-        # 调用父类方法绘制文本和图标
+        # Call parent method to draw text and icon
         super().paintEvent(event)
     
     def lighter(self, color, percent):
-        """返回更亮的颜色"""
+        """Return a lighter color"""
         color = QColor(color)
         h, s, l, a = color.getHslF()
         l = min(1.0, l + percent / 100)
@@ -146,7 +146,7 @@ class GradientButton(QPushButton):
         return color.name()
     
     def darker(self, color, percent):
-        """返回更暗的颜色"""
+        """Return a darker color"""
         color = QColor(color)
         h, s, l, a = color.getHslF()
         l = max(0.0, l - percent / 100)
@@ -154,25 +154,25 @@ class GradientButton(QPushButton):
         return color.name()
 
 class CollapsiblePanel(QWidget):
-    """可折叠面板"""
+    """Collapsible panel"""
     def __init__(self, title, content_widget, parent=None, expanded=True):
         super().__init__(parent)
         self.content_widget = content_widget
         self.expanded = expanded
         self.animation = None
-        self.minimum_panel_height = 40  # 标题栏高度
-        self.is_flight_status = (title == "Flight Status")  # 标记是否为Flight Status面板
+        self.minimum_panel_height = 40  # Title bar height
+        self.is_flight_status = (title == "Flight Status")  # Mark if this is the Flight Status panel
         
-        # 创建布局
+        # Create layout
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
         
-        # 创建标题栏
+        # Create title bar
         self.header = QFrame()
         self.header.setObjectName("collapsibleHeader")
         self.header.setCursor(Qt.PointingHandCursor)
-        self.header.setFixedHeight(self.minimum_panel_height)  # 固定标题栏高度
+        self.header.setFixedHeight(self.minimum_panel_height)  # Fix title bar height
         self.header.setStyleSheet("""
             #collapsibleHeader {
                 background-color: #f0f2f5;
@@ -185,17 +185,17 @@ class CollapsiblePanel(QWidget):
         """)
         
         header_layout = QHBoxLayout(self.header)
-        header_layout.setContentsMargins(15, 0, 15, 0)  # 增加左右边距
+        header_layout.setContentsMargins(15, 0, 15, 0)  # Increase left and right margins
         
-        # 标题文本
+        # Title text
         self.title_label = QLabel(title)
         self.title_label.setObjectName("sectionTitle")
-        # self.title_label.setFixedWidth(300)  # 固定标题宽度
-        self.title_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)  # 垂直居中对齐
+        # self.title_label.setFixedWidth(300)  # Fix title width
+        self.title_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)  # Vertically center alignment
         header_layout.addWidget(self.title_label)
         header_layout.addStretch()
         
-        # 展开/收起图标
+        # Expand/collapse icon
         self.toggle_button = QPushButton()
         self.toggle_button.setObjectName("toggleButton")
         self.toggle_button.setFixedSize(24, 24)
@@ -210,10 +210,10 @@ class CollapsiblePanel(QWidget):
         """)
         header_layout.addWidget(self.toggle_button)
         
-        # 添加标题栏到布局
+        # Add title bar to layout
         self.layout.addWidget(self.header)
         
-        # 创建内容容器
+        # Create content container
         self.content_area = QScrollArea()
         self.content_area.setObjectName("collapsibleContent")
         self.content_area.setWidgetResizable(True)
@@ -227,73 +227,74 @@ class CollapsiblePanel(QWidget):
             #collapsibleContent QWidget#qt_scrollarea_viewport { background: transparent; }
         """)
         
-        # 设置内容区域的最小高度
+        # Set minimum height for content area
         content_widget.setMinimumHeight(50)
         
-        # 设置初始状态
+        # Set initial state
         self.layout.addWidget(self.content_area)
         self.update_toggle_button()
         
-        # 连接信号
+        # Connect signals
         self.header.mousePressEvent = self.toggle_collapsed
         self.toggle_button.clicked.connect(self.toggle_collapsed)
         
-        # 设置初始折叠状态
+        # Set initial collapse state
         if not expanded:
             self.content_area.setMaximumHeight(0)
             self.content_area.setMinimumHeight(0)
             self.setMaximumHeight(self.minimum_panel_height)
         else:
-            # 根据面板类型设置不同的高度策略
+            # Set different height policies based on panel type
             if self.is_flight_status:
-                # Flight Status 面板在展开时不限制最大高度，允许伸展
+                # Flight Status panel has no maximum height when expanded, allowing it to stretch
                 self.setMaximumHeight(16777215)
                 self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
             else:
-                # 前两个面板保持固定高度
+                # The first two panels maintain fixed heights
                 content_height = self.content_widget.sizeHint().height()
                 fixed_height = self.minimum_panel_height + content_height
                 self.setFixedHeight(fixed_height)
                 self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
     
     def sizeHint(self):
+        # Provide suggested size
         """提供建议的大小"""
         width = self.content_widget.sizeHint().width()
         height = self.minimum_panel_height
         
         if self.expanded:
             if self.is_flight_status:
-                # Flight Status 面板建议更大的高度
+                # Flight Status panel suggested更大的高度
                 height += max(400, self.content_widget.sizeHint().height())
             else:
-                # 前两个面板使用固定的内容高度
+                # The first two panels use fixed content height
                 height += self.content_widget.sizeHint().height()
         
         return QSize(width, height)
     
     def minimumSizeHint(self):
-        """提供最小建议大小"""
+        """Provide minimum suggested size"""
         width = self.content_widget.minimumSizeHint().width()
         height = self.minimum_panel_height
         
         return QSize(width, height)
     
     def update_toggle_button(self):
-        """更新切换按钮的文本"""
+        """Update the text of the toggle button"""
         self.toggle_button.setText("▼" if self.expanded else "▶")
     
     def toggle_collapsed(self, event=None):
-        """切换折叠状态"""
+        """Toggle the collapsed state"""
         self.expanded = not self.expanded
         self.update_toggle_button()
         
-        # 创建动画
+        # Create animation
         if self.animation:
             self.animation.stop()
             self.animation.deleteLater()
         
         if self.is_flight_status:
-            # Flight Status 面板使用简化的展开/折叠逻辑
+            # Flight Status panel uses simplified expand/collapse logic
             if self.expanded:
                 self.content_area.setMaximumHeight(16777215)
                 self.content_area.setMinimumHeight(0)
@@ -305,24 +306,24 @@ class CollapsiblePanel(QWidget):
                 self.setMaximumHeight(self.minimum_panel_height)
                 self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         else:
-            # 前两个面板的展开/折叠逻辑
+            # The first two panels' expand/collapse logic
             content_height = self.content_widget.sizeHint().height()
             
             if self.expanded:
-                # 展开：设置为固定高度
+                # Expand: set to fixed height
                 fixed_height = self.minimum_panel_height + content_height
                 self.setFixedHeight(fixed_height)
                 self.content_area.setMaximumHeight(content_height)
                 self.content_area.setMinimumHeight(content_height)
                 self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
             else:
-                # 折叠：只显示标题栏
+                # Collapse: only display the title bar
                 self.setFixedHeight(self.minimum_panel_height)
                 self.content_area.setMaximumHeight(0)
                 self.content_area.setMinimumHeight(0)
                 self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         
-        # 发射信号通知父容器重新调整布局
+        # Emit signal to notify the parent container to re-adjust the layout
         if hasattr(self.parent(), "adjust_layout"):
             self.parent().adjust_layout()
 
@@ -333,7 +334,7 @@ def load_or_make_user(size=40) -> QPixmap:
         pm = QPixmap(path)
         if not pm.isNull():
             return pm.scaled(size, size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-    # fallback: 画一个蓝底白人的圆头像
+    # fallback: draw a blue background, white human circle avatar
     pm = QPixmap(size, size)
     pm.fill(Qt.transparent)
     p = QPainter(pm); p.setRenderHint(QPainter.Antialiasing, True)
@@ -351,7 +352,7 @@ def load_or_make_drone(size=40) -> QPixmap:
         pm = QPixmap(path)
         if not pm.isNull():
             return pm.scaled(size, size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-    # fallback: 画一个简易无人机
+    # fallback: draw a simple drone
     pm = QPixmap(size, size)
     pm.fill(Qt.transparent)
     p = QPainter(pm); p.setRenderHint(QPainter.Antialiasing, True)
@@ -373,7 +374,10 @@ class ChatBubble(QLabel):
         super().__init__(text)
         self.setWordWrap(True)
         self.setTextInteractionFlags(Qt.TextSelectableByMouse | Qt.LinksAccessibleByMouse)
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum)
+        self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+        self.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        
+        # Set style sheet
         self.setStyleSheet(
             "QLabel {"
             f"background-color: rgba({bg.red()},{bg.green()},{bg.blue()},{bg.alpha()});"
@@ -385,12 +389,21 @@ class ChatBubble(QLabel):
             "}"
         )
         self.setMaximumWidth(max_width)
+        
+        # Ensure text correctly wraps
+        self.setTextFormat(Qt.PlainText)
+        self.setWordWrap(True)
+        
+    def setText(self, text: str):
+        super().setText(text)
+        # Update size hint to ensure correct layout
+        self.updateGeometry()
 
 class MessageRow(QWidget):
     def __init__(self, side: str, avatar: QPixmap, bubble: ChatBubble):
         super().__init__()
         lay = QHBoxLayout(self)
-        lay.setContentsMargins(0, 0, 0, 0)
+        lay.setContentsMargins(5, 5, 5, 5)
         lay.setSpacing(8)
 
         avatar_label = QLabel()
@@ -398,15 +411,23 @@ class MessageRow(QWidget):
         avatar_label.setFixedSize(QSize(40, 40))
         avatar_label.setStyleSheet("border-radius: 20px;")
 
+        # Create container for bubble, ensure correct layout
+        bubble_container = QWidget()
+        bubble_layout = QVBoxLayout(bubble_container)
+        bubble_layout.setContentsMargins(0, 0, 0, 0)
+        bubble_layout.addWidget(bubble)
+
         if side == "left":
             lay.addWidget(avatar_label, 0, Qt.AlignTop)
-            lay.addWidget(bubble, 1, Qt.AlignLeft)
+            lay.addWidget(bubble_container, 1)
+            lay.setAlignment(Qt.AlignLeft)
         else:
-            lay.addStretch(0)
-            lay.addWidget(bubble, 1, Qt.AlignRight)
+            lay.addStretch(1)
+            lay.addWidget(bubble_container, 1, Qt.AlignRight)
             lay.addWidget(avatar_label, 0, Qt.AlignTop)
+            lay.setAlignment(Qt.AlignRight)
 
-        self.bubble = bubble  # 方便后续更新宽度
+        self.bubble = bubble
 
 # ---------------- Chat view (scroll + list of rows) ----------------
 class ChatView(QWidget):
@@ -442,8 +463,13 @@ class ChatView(QWidget):
         self._bubbles = []
 
     def _append(self, text: str, side: str, role: str):
+        # Get correct viewport width
         vw = self.scroll.viewport().width()
-        maxw = int(vw * 0.92)
+        if vw <= 0:
+            # If viewport width is invalid, use default value
+            vw = 400
+        maxw = int(vw * 0.75)  # Adjust to 75% to leave more margin
+        
         if role == "user":
             bubble = ChatBubble(text, QColor(74, 144, 226), QColor("white"), maxw)
             avatar = self.user_avatar
@@ -452,12 +478,15 @@ class ChatView(QWidget):
             bubble.setStyleSheet(bubble.styleSheet() + "border: 1px solid #e6e9ef;")
             avatar = self.drone_avatar
 
-        bubble.setMaximumWidth(maxw)
-
         row = MessageRow(side, avatar, bubble)
         self.vbox.insertWidget(self.vbox.count() - 1, row)
         self._bubbles.append(bubble)
-        QTimer.singleShot(0, self.scroll_to_bottom)
+        
+        # Delay scrolling to bottom, ensure layout is completed
+        QTimer.singleShot(100, self.scroll_to_bottom)
+        
+        # Force update layout
+        self.container.updateGeometry()
 
     def append_user_message(self, text: str):
         if text:
@@ -483,22 +512,29 @@ class ChatView(QWidget):
     def resizeEvent(self, e):
         super().resizeEvent(e)
         vw = self.scroll.viewport().width()
-        maxw = int(vw * 0.92)
+        maxw = int(vw * 0.75)  # Adjust to 75% to leave more margin
+        
         for b in self._bubbles:
             b.setMaximumWidth(maxw)
+            # Force text to re-layout
+            b.setText(b.text())
+        
+        # Update container layout
+        self.container.updateGeometry()
+        QTimer.singleShot(0, self.scroll_to_bottom)
 
 class ModernDroneUI(QMainWindow):
-    """现代化的无人机控制界面"""
+    """Modern drone control interface"""
     
     # 主题样式定义
     DARK_THEME = """
-    /* 深色主题样式 */
+    /* Dark theme styles */
     QMainWindow, QWidget {
         background-color: #2d3436;
         color: #f5f6fa;
     }
     
-    /* 标题样式 */
+    /* Title styles */
     #panelTitle {
         font-size: 20px;
         font-weight: bold;
@@ -514,7 +550,7 @@ class ModernDroneUI(QMainWindow):
         padding: 3px;
     }
     
-    /* 小按钮样式 */
+    /* Small button styles */
     #smallButton {
         background-color: #4a90e2;
         color: white;
@@ -533,7 +569,7 @@ class ModernDroneUI(QMainWindow):
         background-color: #2a6da9;
     }
     
-    /* 文本编辑区域 */
+    /* Text editing area */
     QTextEdit, QLineEdit {
         background-color: #1e1e1e;
         color: #e0e0e0;
@@ -574,7 +610,7 @@ class ModernDroneUI(QMainWindow):
         color: #888888;
     }
     
-    /* 状态标签 */
+    /* Status label */
     #statusLabel {
         background-color: #1e1e1e;
         color: #e0e0e0;
@@ -585,7 +621,7 @@ class ModernDroneUI(QMainWindow):
         line-height: 1.5;
     }
     
-    /* 滚动条样式 */
+    /* Scroll bar styles */
     QScrollBar:vertical {
         border: none;
         background: #2a2a2a;
@@ -632,13 +668,13 @@ class ModernDroneUI(QMainWindow):
 """
     
     BLUE_THEME = """
-    /* 蓝色主题样式 */
+    /* Blue theme styles */
     QMainWindow, QWidget {
         background-color: #e6f2ff;
         color: #2c3e50;
     }
     
-    /* 标题样式 */
+    /* Title styles */
     #panelTitle {
         font-size: 20px;
         font-weight: bold;
@@ -654,7 +690,7 @@ class ModernDroneUI(QMainWindow):
         padding: 3px;
     }
     
-    /* 小按钮样式 */
+    /* Small button styles */
     #smallButton {
         background-color: #4a90e2;
         color: white;
@@ -673,7 +709,7 @@ class ModernDroneUI(QMainWindow):
         background-color: #2a6da9;
     }
     
-    /* 文本编辑区域 */
+    /* Text editing area */
     QTextEdit, QLineEdit {
         background-color: #ffffff;
         color: #333333;
@@ -716,7 +752,7 @@ class ModernDroneUI(QMainWindow):
         color: #a0a0a0;
     }
     
-    /* 状态标签 */
+    /* Status label */
     #statusLabel {
         background-color: #ffffff;
         color: #333333;
@@ -727,7 +763,7 @@ class ModernDroneUI(QMainWindow):
         line-height: 1.5;
     }
     
-    /* 滚动条样式 */
+    /* Scroll bar styles */
     QScrollBar:vertical {
         border: none;
         background: #f0f0f0;
@@ -776,40 +812,40 @@ class ModernDroneUI(QMainWindow):
     def __init__(self, fps):
         super().__init__()
         self.setWindowTitle("AirNavigation")
-        self.setGeometry(100, 100, 3000, 1600)  # 设置初始大小为3000x1800
+        self.setGeometry(100, 100, 3000, 1600)  # Set initial size to 3000x1800
         self.setWindowIcon(QIcon("utils/hhu.jpg"))
         
-        # 存储折叠状态
+        # Store collapse state
         self.panel_states = {
-            "status": True,  # 默认展开
-            "trajectory": True,  # 默认展开
-            "flight_status": True  # 默认展开
+            "status": True,  # Default expanded
+            "trajectory": True,  # Default expanded
+            "flight_status": True  # Default expanded
         }
         
-        # 设置中央窗口部件
+        # Set central window widget
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
         
-        # 应用默认浅色主题样式
+        # Apply default light theme styles
         self.apply_styles()
         
 
-        self.fpv_uav = UAV()          # 无人机
-        self.pressed_keys = []        # 存储当前按下的按键
-        self.targets = []             # 存储无人机发现的目标
-        self.fps = fps                # 设置主界面的帧率
-        self.record_interval = 0.8    # 轨迹更新间隔（秒）
-        self.map_isopen = False       # 地图是否打开
-        self.previous_selections = [] # 
+        self.fpv_uav = UAV()          # Drone
+        self.pressed_keys = []        # Store current pressed keys
+        self.targets = []             # Store targets discovered by the drone
+        self.fps = fps                # Set the frame rate of the main interface
+        self.record_interval = 0.8    # Trajectory update interval (seconds)
+        self.map_isopen = False       # Map is opened
+        self.previous_selections = [] # Store previous selections
         
-        self.trajectory_viewer = None # 保存对轨迹查看器的引用
+        self.trajectory_viewer = None # Store reference to trajectory viewer
         self.trajectory_tracking = False
-        self.trajectory_timer = QTimer()  # 轨迹更新定时器
+        self.trajectory_timer = QTimer()  # Trajectory update timer
 
-        self.t_last_pressed_C = time.time()  # 记录最后一次按下C键的时间
-        self.t_last_pressed_R = time.time()  # 记录最后一次按下R键的时间
+        self.t_last_pressed_C = time.time() # Record the time of the last press of the C key
+        self.t_last_pressed_R = time.time() # Record the time of the last press of the R key
 
-        # 界面元素
+        # Interface elements
         self.btn_connect = None
         self.btn_change_weather = None
         self.btn_change_work_mode = None
@@ -829,19 +865,19 @@ class ModernDroneUI(QMainWindow):
         self.label_image = None
         self.change_weather_widget = None
         self.change_work_mode_widget = None
-        self.botsort_input_widget = None  # 用于输入目标ID的弹框
+        self.botsort_input_widget = None  # Popup window for inputting target ID
         self.change_uav_widget = None
         self.change_map_widget = None
-        self.rec = None  # 录像对象
-        self.fpv_uav_resolution_ratio = None  # 首视角无人机的分辨率
-        self.weather_controller = None  # 天气控制器
-        self.capture_flag = False  # 拍照标志
-        self.record_state_flag = False  # 记录状态标志
-        self.timer = QtCore.QTimer()  # 定时器，用于更新界面
-        self.record_realtime_state = False  # 记录实时状态标志
-        self.monitoring_flag = False  # 监控标志
+        self.rec = None  # Video recorder
+        self.fpv_uav_resolution_ratio = None # First-person view drone resolution
+        self.weather_controller = None  # Weather controller
+        self.capture_flag = False  # Photo flag
+        self.record_state_flag = False  # Record state flag
+        self.timer = QtCore.QTimer()  # Timer, used to update the interface
+        self.record_realtime_state = False  # Record real-time state flag
+        self.monitoring_flag = False  # Monitoring flag
         self.input_text = None
-        self.experiment_flag = False  # 实验标志
+        self.experiment_flag = False  # Experiment flag
 
         self.left_panel = None
         self.right_panel = None
@@ -863,27 +899,27 @@ class ModernDroneUI(QMainWindow):
         self.last_time = 0
         self.last_adjustment_cnt = 0
 
-        # 设置UI
+        # Set UI
         self.set_ui()
-        QApplication.instance().installEventFilter(self)  # 安装事件过滤器
+        QApplication.instance().installEventFilter(self)  # Install event filter
         self._init_command_system()
     
     def _init_command_system(self):
-        """初始化命令处理系统"""
-        # 创建线程和工作器
+        """Initialize command processing system"""
+        # Create thread and worker
         self.command_thread = QThread()
         self.command_worker = CommandWorker(
             f"{gemini_api}"
         )
 
-        # 连接信号（确保在主线程连接）
+        # Connect signal (ensure in main thread)
         self.command_worker.output_received.connect(self.update_console)
         self.command_worker.finished.connect(self.close)
 
-        # 移动工作器到线程（关键步骤）
+        # Move worker to thread (key step)
         self.command_worker.moveToThread(self.command_thread)
 
-        # 启动线程后初始化
+        # Initialize after starting thread
         def start_initialization():
             QMetaObject.invokeMethod(
                 self.command_worker,
@@ -891,18 +927,18 @@ class ModernDroneUI(QMainWindow):
                 Qt.QueuedConnection
             )
 
-        self.command_thread.started.connect(start_initialization)  # <-- 修正初始化时机
+        self.command_thread.started.connect(start_initialization)  
         self.command_thread.start()
-        # 验证对象线程归属
+        # Verify thread ownership
         print("Worker thread:", self.command_worker.thread())
         print("Command thread:", self.command_thread)
 
     def apply_dark_theme(self):
-        """应用深色主题"""
+        """Apply dark theme"""
         self.setStyleSheet(self.DARK_THEME)
     
     def apply_blue_theme(self):
-        """应用蓝色主题"""
+        """Apply blue theme"""
         self.setStyleSheet(self.BLUE_THEME)
     
     def update_console(self, text):
@@ -910,31 +946,31 @@ class ModernDroneUI(QMainWindow):
         self.append_system_message(text)
 
     def set_ui(self):
-        """设置UI布局"""
-        # 创建主布局
+        """Set UI layout"""
+        # Create main layout
         main_layout = QVBoxLayout(self.central_widget)
         main_layout.setContentsMargins(10, 10, 10, 10)
         main_layout.setSpacing(10)
         
-        # 创建水平分割器
+        # Create horizontal splitter
         splitter = QSplitter(Qt.Horizontal)
         
-        # 创建左侧控制面板
+        # Create left control panel
         self.left_panel = self.create_left_panel()
         
-        # 创建中央视频区域
+        # Create central video area
         self.central_area = self.create_central_area()
         
-        # 创建右侧数据显示面板
+        # Create right data display panel
         self.right_panel = self.create_right_panel()
         
-        # 添加到分割器
+        # Add to splitter
         splitter.addWidget(self.left_panel)
         splitter.addWidget(self.central_area)
         splitter.addWidget(self.right_panel)
         
-        # 设置初始分割比例 - 调整为给右侧面板更多空间
-        splitter.setSizes([450, 1800, 600])  # 调整比例，给右侧更多空间
+        # Set initial split ratio - adjusted to give more space to the right panel
+        splitter.setSizes([450, 1800, 600])  # Adjust ratio, give more space to the right
         splitter.setHandleWidth(2)
         splitter.setStyleSheet("""
             QSplitter::handle {
@@ -945,7 +981,7 @@ class ModernDroneUI(QMainWindow):
             }
         """)
         
-        # 添加分割器到主布局
+        # Add splitter to main layout
         main_layout.addWidget(splitter)
         
         self.chat_panel.toggle_collapsed()
@@ -1334,7 +1370,7 @@ class ModernDroneUI(QMainWindow):
         
         layout.addWidget(status_container)
         
-        # 提示信息
+        # Tip information
         tip_container = QFrame()
         tip_container.setObjectName("tipContainer")
         tip_container.setStyleSheet("""
@@ -1367,11 +1403,11 @@ class ModernDroneUI(QMainWindow):
         return info_card
         
     def create_sample_icons(self):
-        """创建示例图标文件，如果不存在"""
-        # 确保icons目录存在
+        """Create sample icon files, if not exist"""
+        # Ensure icons directory exists
         os.makedirs("icons", exist_ok=True)
         
-        # 定义图标和颜色
+        # Define icons and colors
         icons = {
             "connect.png": "#4a90e2",
             "camera.png": "#4CAF50",
@@ -1387,23 +1423,23 @@ class ModernDroneUI(QMainWindow):
             "battery.png": "#FFC107" # Added battery icon
         }
         
-        # 检查每个图标是否存在，如果不存在，创建一个简单的彩色方块作为图标
+        # Check if each icon exists, if not, create a simple colored square as an icon
         for icon_name, color in icons.items():
             icon_path = os.path.join("icons", icon_name)
             if not os.path.exists(icon_path):
-                # 创建一个32x32的彩色图像
+                # Create a 32x32 colored image
                 pixmap = QPixmap(32, 32)
                 pixmap.fill(QColor(color))
                 pixmap.save(icon_path)
     
     def create_central_area(self):
-        """创建中央视频区域"""
+        """Create central video area"""
         central_area = RoundedFrame(radius=12, bg_color="white", border_color="#e9ecef")
         layout = QVBoxLayout(central_area)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
         
-        # 标题区域
+        # Title area
         title_container = QFrame()
         title_container.setObjectName("droneTitleContainer")
         title_container.setStyleSheet("""
@@ -1430,21 +1466,21 @@ class ModernDroneUI(QMainWindow):
         
         layout.addWidget(title_container)
         
-        # 视频显示区域
+        # Video display area
         video_container = QFrame()
         video_container.setStyleSheet("background-color: #000;")
         
         video_layout = QVBoxLayout(video_container)
         video_layout.setContentsMargins(0, 0, 0, 0)
         
-        # 创建视频标签
+        # Create video label
         self.label_image = QLabel("Waiting connection...")
         self.label_image.setAlignment(Qt.AlignCenter)
         self.label_image.setStyleSheet("color: white; font-size: 24px;")
         self.label_image.setMinimumSize(1280, 720)
         self.label_image.setFrameStyle(QFrame.Box)
         self.label_image.setObjectName("imageDisplay")
-        # 使用AspectRatioWidget保持视频的宽高比
+        # Use AspectRatioWidget to keep the aspect ratio of the video
         video_layout.addWidget(self.label_image)
         
         layout.addWidget(video_container, 1)
@@ -1452,42 +1488,42 @@ class ModernDroneUI(QMainWindow):
         return central_area
     
     def create_right_panel(self):
-        """创建右侧面板"""
+        """Create right panel"""
         right_panel = RoundedFrame(radius=12, bg_color="#f8f9fa", border_color="#e9ecef")
         right_panel.setMinimumWidth(300)
-        right_panel.setMaximumWidth(600)  # 增加最大宽度
+        right_panel.setMaximumWidth(600)  # Increase maximum width
         
-        # 创建主布局
+        # Create main layout
         self.right_layout = QVBoxLayout(right_panel)
         self.right_layout.setContentsMargins(15, 20, 15, 20)
-        self.right_layout.setSpacing(10)  # 设置面板之间的间距
+        self.right_layout.setSpacing(10)  # Set spacing between panels
         
-        # 创建可折叠面板
+        # Create collapsible panels
         self.status_panel = self.create_status_panel()
         self.trajectory_panel = self.create_trajectory_panel()
         self.chat_panel = self.create_chat_panel()
         
-        # 添加到主布局
+        # Add to main layout
         self.right_layout.addWidget(self.status_panel)
         self.right_layout.addWidget(self.trajectory_panel)
         self.right_layout.addWidget(self.chat_panel)
         
-        # 添加弹性空间
+        # Add elastic space
         self.right_layout.addStretch(1)
         
-        # 为右侧面板添加调整布局的方法
+        # Add method to adjust layout for right panel
         right_panel.adjust_layout = self.adjust_right_layout
         
         return right_panel
     
     def create_status_panel(self):
-        """创建状态信息面板"""
-        # 创建内容部件
+        """Create status information panel"""
+        # Create content widget
         status_content = QWidget()
         status_layout = QVBoxLayout(status_content)
         status_layout.setContentsMargins(10, 10, 10, 10)
         
-        # 状态信息标签
+        # Status information label
         self.label_status = QLabel()
         self.label_status.setObjectName("statusLabel")
         self.label_status.setWordWrap(True)
@@ -1497,22 +1533,22 @@ class ModernDroneUI(QMainWindow):
         
         status_layout.addWidget(self.label_status)
         
-        # 创建可折叠面板
+        # Create collapsible panel
         return CollapsiblePanel("Status Information", status_content, expanded=True)
     
     def create_trajectory_panel(self):
-        """创建轨迹显示面板"""
-        # 创建内容部件
+        """Create trajectory display panel"""
+        # Create content widget
         trajectory_content = QWidget()
         trajectory_layout = QVBoxLayout(trajectory_content)
         trajectory_layout.setContentsMargins(0, 10, 0, 10)
         
-        # 轨迹查看器
+        # Trajectory viewer
         self.trajectory_viewer = TrajectoryViewer()
         self.trajectory_viewer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         trajectory_layout.addWidget(self.trajectory_viewer)
         
-        # 创建可折叠面板
+        # Create collapsible panel
         return CollapsiblePanel("Real-time Trajectory", trajectory_content, expanded=True)
     
     def create_chat_panel(self):
@@ -1563,7 +1599,7 @@ class ModernDroneUI(QMainWindow):
     def append_user_message(self, message):
         if not message:
             return
-        # 直接走 ChatView
+        # Directly go to ChatView
         self.chat_view.append_user_message(message)
 
     def append_system_message(self, message):
@@ -1632,30 +1668,30 @@ class ModernDroneUI(QMainWindow):
             print(f"Error creating drone icon: {e}")
 
     def adjust_right_layout(self):
-        """调整右侧面板布局"""
-        # 清除所有布局项
+        """Adjust right panel layout"""
+        # Clear all layout items
         while self.right_layout.count():
             item = self.right_layout.takeAt(0)
             if item.widget():
                 item.widget().setParent(None)
         
-        # 重新添加部件
-        # 始终添加所有面板，无论是否展开
+        # Re-add components
+        # Always add all panels, whether expanded or not
         self.right_layout.addWidget(self.status_panel)
         self.right_layout.addWidget(self.trajectory_panel)
         self.right_layout.addWidget(self.chat_panel)
         
-        # 设置拉伸因子：前两个模块保持固定高度，只有第三个模块可以伸展
-        # Status Information 和 Real-time Trajectory 始终为0（不伸展）
+        # Set stretch factors: the first two modules maintain fixed height, only the third module can stretch
+        # Status Information and Real-time Trajectory always remain 0 (no stretching)
         self.right_layout.setStretchFactor(self.status_panel, 0)
         self.right_layout.setStretchFactor(self.trajectory_panel, 0)
         
-        # Flight Status 面板：展开时获得所有剩余空间，折叠时不伸展
+        # Flight Status panel: when expanded, get all remaining space, when folded, do not stretch
         if self.chat_panel.expanded:
             self.right_layout.setStretchFactor(self.chat_panel, 1)
         else:
             self.right_layout.setStretchFactor(self.chat_panel, 0)
-            # 如果 Flight Status 折叠，添加弹性空间填充剩余区域
+            # If Flight Status is folded, add elastic space to fill the remaining area
             self.right_layout.addStretch(1)
 
     def keyboard_control(self):
