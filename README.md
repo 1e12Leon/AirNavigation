@@ -6,7 +6,7 @@
 <img src="utils/hhu.jpg" alt="Logo" width="15">, &nbsp; &nbsp;
 [Zequan Wang (王泽权)]() *
 <img src="utils/hhu.jpg" alt="Logo" width="15">, &nbsp; &nbsp;
-[Liang Yao (姚亮)](https://multimodality.group/author/%E5%A7%9A%E4%BA%AE/) 
+[Liang Yao (姚亮)](https://1e12leon.github.io/) 
 <img src="utils/hhu.jpg" alt="Logo" width="15">, &nbsp; &nbsp;
 [Fan Liu (刘凡)](https://multimodality.group/author/%E5%88%98%E5%87%A1/) ✉ 
 <img src="utils/hhu.jpg" alt="Logo" width="15">, &nbsp; &nbsp;
