@@ -10,7 +10,7 @@ def evaluate_all_flight(xml_content: str) -> str:
     os.environ['all_proxy'] = 'socks5://127.0.0.1:10809'
 
     genai.configure(api_key=gemini_api, transport='rest')
-    model = genai.GenerativeModel("gemini-2.5-flash-preview-05-20")
+    model = genai.GenerativeModel("gemini-2.0-flash-001")
 
     # p = """
     # # Role: 无人机飞行情况分析专家
@@ -162,7 +162,7 @@ def evaluate_realtime_flight(xml_content: str) -> str:
     os.environ['all_proxy'] = 'socks5://127.0.0.1:10809'
 
     genai.configure(api_key=gemini_api, transport='rest')
-    model = genai.GenerativeModel("gemini-2.5-flash-preview-05-20")
+    model = genai.GenerativeModel("gemini-2.0-flash-001")
 
     # p = """
     #   # Role: 无人机飞行实时状态分析专家

@@ -1,10 +1,10 @@
 <div align="center">
 
-## AirNavigation: An Autonomous UAV Navigation Simulation System Enhanced by Multimodal Large Language Models
+## AirNavigation: When UAV Navigation Tells Its Own Story
 
-[Jianyu Jiang (江建谕)](https://multimodality.group/author/%E6%B1%9F%E5%BB%BA%E8%B0%95/)* 
+[Jianyu Jiang (江建谕)](https://multimodality.group/author/%E6%B1%9F%E5%BB%BA%E8%B0%95/)
 <img src="utils/hhu.jpg" alt="Logo" width="15">, &nbsp; &nbsp;
-[Zequan Wang (王泽权)]() *
+[Zequan Wang (王泽权)]() 
 <img src="utils/hhu.jpg" alt="Logo" width="15">, &nbsp; &nbsp;
 [Liang Yao (姚亮)](https://1e12leon.github.io/) 
 <img src="utils/hhu.jpg" alt="Logo" width="15">, &nbsp; &nbsp;
@@ -12,14 +12,13 @@
 <img src="utils/hhu.jpg" alt="Logo" width="15">, &nbsp; &nbsp;
 
 [Shengxiang Xu (徐圣翔)](https://multimodality.group/author/%E5%BE%90%E5%9C%A3%E7%BF%94/) 
-<img src="utils/hhu.jpg" alt="Logo" width="15">, &nbsp; &nbsp;
-[Jun Zhou (周峻)](https://experts.griffith.edu.au/7205-jun-zhou) 
-<img src="utils/griffith.png" alt="Logo" width="15">, &nbsp; &nbsp;
+<img src="utils/SEU.png" alt="Logo" width="15"> &nbsp; &nbsp;
 
 <img src="utils/hhu_text.png" alt="Logo" width="100"> &nbsp; &nbsp;  &nbsp; &nbsp; 
-<img src="utils/griffith_text.png" alt="Logo" width="90">
+<img src="utils/seu_logo_text.jpg" alt="Logo" width="90">
 
-\* *Equal Contribution*
+✉ *Corresponding Author*
+
 
 </div>
 

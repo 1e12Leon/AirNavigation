@@ -885,7 +885,7 @@ class ModernDroneUI(QMainWindow):
         self.command_thread = None
         self.move_thread = None
         self.command_worker = None
-        self.console_output = None
+
         self.cmd_input = None
         self.prev_pitch = 0
         self.prev_yaw = 0
@@ -898,8 +898,16 @@ class ModernDroneUI(QMainWindow):
         self.last_z = 0
         self.last_time = 0
         self.last_adjustment_cnt = 0
+        
+        # Initialize status items
+        self.status_items = [
+            {"label": "System:", "value": "AirNavigation 1.0.0", "icon": "system.png"},
+            {"label": "Status:", "value": "Ready", "icon": "mode.png"},
+            {"label": "Connected:", "value": "No", "icon": "connect.png"},
+            {"label": "Battery:", "value": "100%", "icon": "battery.png"}
+        ]
 
-        # Set UI
+        # 设置UI
         self.set_ui()
         QApplication.instance().installEventFilter(self)  # Install event filter
         self._init_command_system()
@@ -913,7 +921,7 @@ class ModernDroneUI(QMainWindow):
         )
 
         # Connect signal (ensure in main thread)
-        self.command_worker.output_received.connect(self.update_console)
+        self.command_worker.output_received.connect(self.append_system_message)
         self.command_worker.finished.connect(self.close)
 
         # Move worker to thread (key step)
@@ -940,10 +948,6 @@ class ModernDroneUI(QMainWindow):
     def apply_blue_theme(self):
         """Apply blue theme"""
         self.setStyleSheet(self.BLUE_THEME)
-    
-    def update_console(self, text):
-        """Display worker output as drone messages"""
-        self.append_system_message(text)
 
     def set_ui(self):
         """Set UI layout"""
@@ -1089,8 +1093,8 @@ class ModernDroneUI(QMainWindow):
         """Record drone state"""
         if self.record_state_flag:
             self.record_state_flag = False
-            self.console_output.append("Start Recording")
-            # self.btn_record_state.setText("Start Recording")
+            self.append_system_message("Stop recording.")
+            self.btn_record_state.setText("Start Recording")
             log_data = self.fpv_uav.stop_logging()
 
             # Update initial state in the main thread
@@ -1103,8 +1107,8 @@ class ModernDroneUI(QMainWindow):
             self.record_state_flag = True
             self.fpv_uav.start_logging(self.record_interval)
 
-            # self.btn_record_state.setText("Stop Recording")
-            self.append_system_message("Stop Recording...")
+            self.btn_record_state.setText("Stop Recording")
+            self.append_system_message("Start recording...")
             print("Successfully started recording state!")
     
     def toggle_monitoring(self):
@@ -1329,20 +1333,13 @@ class ModernDroneUI(QMainWindow):
         status_layout.setColumnStretch(1, 1)  # Make value column can stretch
         
         # Add status information row
-        status_items = [
-            {"label": "System:", "value": "AirNavigation 1.0.0", "icon": "system.png"},
-            {"label": "Status:", "value": "Ready", "icon": "mode.png"},
-            {"label": "Connected:", "value": "No", "icon": "connect.png"},
-            {"label": "Battery:", "value": "100%", "icon": "battery.png"}
-        ]
-        
         row = 0
-        for item in status_items:
+        for item in self.status_items:
             # Icon
             icon_label = QLabel()
             icon_label.setFixedSize(16, 16)
-            if item["icon"] and os.path.exists(item["icon"]):
-                icon_label.setPixmap(QPixmap(item["icon"]).scaled(16, 16, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+            if item["icon"] and os.path.exists(f"icons/{item['icon']}"):
+                icon_label.setPixmap(QPixmap(f"icons/{item['icon']}").scaled(16, 16, Qt.KeepAspectRatio, Qt.SmoothTransformation))
             status_layout.addWidget(icon_label, row, 0)
             
             # Label
@@ -1887,7 +1884,44 @@ class ModernDroneUI(QMainWindow):
 
         # Since this map is large, it needs to wait for a while before starting to connect to the drone
         LoadingDialog.load_with_dialog(40, self.after_loading_map)
-
+        
+        # Update status items to show connected status
+        self.update_status_items(connected=True)
+    
+    def update_status_items(self, connected=False):
+        """Update status items in the info card and refresh the UI"""
+        # Update the status items
+        self.status_items = [
+            {"label": "System:", "value": "AirNavigation 1.0.0", "icon": "system.png"},
+            {"label": "Status:", "value": "Connected", "icon": "mode.png"},
+            {"label": "Connected:", "value": "Yes", "icon": "connect.png"},
+            {"label": "Battery:", "value": "100%", "icon": "battery.png"}
+        ]
+        
+        # Recreate the info card with updated status items
+        if hasattr(self, 'left_panel'):
+            # Remove the old info card
+            for i in range(self.left_panel.layout().count()):
+                item = self.left_panel.layout().itemAt(i)
+                if isinstance(item.widget(), QScrollArea):
+                    scroll_area = item.widget()
+                    content_widget = scroll_area.widget()
+                    
+                    # Find the info card in the scroll area's layout
+                    for j in range(content_widget.layout().count()):
+                        scroll_item = content_widget.layout().itemAt(j)
+                        if isinstance(scroll_item.widget(), RoundedFrame):
+                            # Remove the old info card
+                            old_info_card = scroll_item.widget()
+                            content_widget.layout().removeWidget(old_info_card)
+                            old_info_card.deleteLater()
+                            
+                            # Create and add the new info card
+                            new_info_card = self.create_info_card()
+                            content_widget.layout().addWidget(new_info_card)
+                            break
+                    break
+    
     # Update label_status
     def update_label_status(self):
         weather, val = self.weather_controller.get_weather()
