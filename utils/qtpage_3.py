@@ -161,7 +161,7 @@ class CollapsiblePanel(QWidget):
         self.expanded = expanded
         self.animation = None
         self.minimum_panel_height = 40  # Title bar height
-        self.is_flight_status = (title == "Flight Status")  # Mark if this is the Flight Status panel
+        self.is_flight_chat = (title == "Flight Chat")  # Mark if this is the Flight Chat panel
         
         # Create layout
         self.layout = QVBoxLayout(self)
@@ -245,8 +245,8 @@ class CollapsiblePanel(QWidget):
             self.setMaximumHeight(self.minimum_panel_height)
         else:
             # Set different height policies based on panel type
-            if self.is_flight_status:
-                # Flight Status panel has no maximum height when expanded, allowing it to stretch
+            if self.is_flight_chat:
+                # Flight Chat panel has no maximum height when expanded, allowing it to stretch
                 self.setMaximumHeight(16777215)
                 self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
             else:
@@ -263,8 +263,8 @@ class CollapsiblePanel(QWidget):
         height = self.minimum_panel_height
         
         if self.expanded:
-            if self.is_flight_status:
-                # Flight Status panel suggested更大的高度
+            if self.is_flight_chat:
+                # Flight Chat panel suggested更大的高度
                 height += max(400, self.content_widget.sizeHint().height())
             else:
                 # The first two panels use fixed content height
@@ -293,8 +293,8 @@ class CollapsiblePanel(QWidget):
             self.animation.stop()
             self.animation.deleteLater()
         
-        if self.is_flight_status:
-            # Flight Status panel uses simplified expand/collapse logic
+        if self.is_flight_chat:
+            # Flight Chat panel uses simplified expand/collapse logic
             if self.expanded:
                 self.content_area.setMaximumHeight(16777215)
                 self.content_area.setMinimumHeight(0)
@@ -1591,7 +1591,7 @@ class ModernDroneUI(QMainWindow):
         input_layout.addLayout(button_container)
         chat_layout.addLayout(input_layout)
 
-        return CollapsiblePanel("Flight Status", chat_content, expanded=True)
+        return CollapsiblePanel("Flight Chat", chat_content, expanded=True)
 
     def append_user_message(self, message):
         if not message:
@@ -1683,12 +1683,12 @@ class ModernDroneUI(QMainWindow):
         self.right_layout.setStretchFactor(self.status_panel, 0)
         self.right_layout.setStretchFactor(self.trajectory_panel, 0)
         
-        # Flight Status panel: when expanded, get all remaining space, when folded, do not stretch
+        # Flight Chat panel: when expanded, get all remaining space, when folded, do not stretch
         if self.chat_panel.expanded:
             self.right_layout.setStretchFactor(self.chat_panel, 1)
         else:
             self.right_layout.setStretchFactor(self.chat_panel, 0)
-            # If Flight Status is folded, add elastic space to fill the remaining area
+            # If Flight Chat is folded, add elastic space to fill the remaining area
             self.right_layout.addStretch(1)
 
     def keyboard_control(self):
