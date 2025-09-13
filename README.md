@@ -1,6 +1,6 @@
 <div align="center">
 
-## AirNavigation: When UAV Navigation Tells Its Own Story
+## AirNavigation: Let UAV Navigation Tells Its Own Story
 
 [Jianyu Jiang (江建谕)](https://multimodality.group/author/%E6%B1%9F%E5%BB%BA%E8%B0%95/)
 <img src="utils/hhu.jpg" alt="Logo" width="15">, &nbsp; &nbsp;
