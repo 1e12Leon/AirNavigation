@@ -25,9 +25,9 @@
 ![introduction.png](introduction.png)
 
 # video
-[bilibili](https://www.bilibili.com/video/BV1b5AeeGEm2)
 
-[youtube](https://youtube.com/watch?v=B3gYFj5jqyE)
+
+[youtube](https://youtu.be/5lavkotOyps)
 
 # News
 
