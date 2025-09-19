@@ -31,11 +31,11 @@
 
 ## 视频
 
-- [Bilibili 视频](https://www.bilibili.com/video/BV1b5AeeGEm2)  
-- [YouTube 视频](https://youtube.com/watch?v=B3gYFj5jqyE)
+[youtube](https://youtu.be/5lavkotOyps)
 
 ## 新闻
 
+- **2025/09/04**: feat: new UI
 - **2025/07/22**: 添加数据集采集功能并更新文档  
 - **2025/07/06**: 添加实验指标并更新配置/文档  
 - **2025/03/07**: 添加中文界面白色主题  
