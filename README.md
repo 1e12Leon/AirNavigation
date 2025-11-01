@@ -8,11 +8,11 @@
 <img src="utils/hhu.jpg" alt="Logo" width="15">, &nbsp; &nbsp;
 [Liang Yao (姚亮)](https://1e12leon.github.io/) 
 <img src="utils/hhu.jpg" alt="Logo" width="15">, &nbsp; &nbsp;
-[Fan Liu (刘凡)](https://multimodality.group/author/%E5%88%98%E5%87%A1/) ✉ 
-<img src="utils/hhu.jpg" alt="Logo" width="15">, &nbsp; &nbsp;
-
 [Shengxiang Xu (徐圣翔)](https://multimodality.group/author/%E5%BE%90%E5%9C%A3%E7%BF%94/) 
-<img src="utils/SEU.png" alt="Logo" width="15"> &nbsp; &nbsp;
+<img src="utils/SEU.png" alt="Logo" width="15">, &nbsp; &nbsp;
+
+[Fan Liu (刘凡)](https://multimodality.group/author/%E5%88%98%E5%87%A1/) ✉ 
+<img src="utils/hhu.jpg" alt="Logo" width="15">  &nbsp; &nbsp;
 
 <img src="utils/hhu_text.png" alt="Logo" width="100"> &nbsp; &nbsp;  &nbsp; &nbsp; 
 <img src="utils/seu_logo_text.jpg" alt="Logo" width="90">
